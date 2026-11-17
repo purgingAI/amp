@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenWallet Agent Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Internal console: every number the customer app's assistant computed, per turn.
+   Served by the engine (:8440), never by the customer app. */
+:root{
+  --bg:#07090d; --panel:#0d1117; --panel2:#111722; --line:#1e2633; --ink:#d7dde8; --muted:#7d8899; --dim:#4b5566;
+  --cyan:#22d3ee; --green:#34d399; --amber:#fbbf24; --red:#f87171; --violet:#a78bfa; --blue:#60a5fa; --orange:#fb923c;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace; --sans:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#0f1b2b 0%,var(--bg) 55%);color:var(--ink);font:13px/1.5 var(--sans);min-height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(7,9,13,.88);backdrop-filter:blur(8px);z-index:5;flex-wrap:wrap}
+.brand{font:600 15px/1 var(--mono);letter-spacing:.02em}
+.brand b{color:var(--orange)}
+.live{display:flex;align-items:center;gap:6px;font:500 11px/1 var(--mono);color:var(--green)}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.3}}
+.stack{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{font:500 11px/1 var(--mono);border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:7px 9px;color:var(--muted)}
+.chip b{color:var(--ink);font-weight:500}
+.chip.c1{border-color:#123a46}.chip.c1 b{color:var(--cyan)}
+.chip.c2{border-color:#3a2a10}.chip.c2 b{color:var(--amber)}
+.chip.c3{border-color:#2a1f46}.chip.c3 b{color:var(--violet)}
+main{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:calc(100vh - 56px)}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+aside{border-right:1px solid var(--line);padding:14px;overflow-y:auto;max-height:calc(100vh - 56px);position:sticky;top:56px}
+h6{font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:6px 0 10px}
+.bot{border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin-bottom:8px;background:var(--panel)}
+.bot .id{font:500 12px/1.3 var(--mono);color:var(--cyan)}
+.bot .who{color:var(--muted);font-size:12px}
+.ses{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:9px 10px;margin-bottom:6px;cursor:pointer;font-family:inherit}
+.ses:hover{border-color:#2b3646}
+.ses.on{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+.ses .id{font:500 11.5px/1.3 var(--mono)}
+.ses .meta{font:400 11px/1.4 var(--mono);color:var(--muted);display:flex;justify-content:space-between;margin-top:3px}
+section.feed{padding:16px 22px 60px;min-width:0}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px}
+.kpi span{display:block;font:500 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.kpi b{font:600 22px/1 var(--mono);color:var(--ink)}
+.kpi small{font:400 11px/1 var(--mono);color:var(--muted);margin-left:4px}
+.turn{border:1px solid var(--line);background:linear-gradient(180deg,var(--panel2),var(--panel));border-radius:12px;margin-bottom:16px;overflow:hidden}
+.th{display:flex;gap:12px;align-items:baseline;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.th .n{font:600 11px/1 var(--mono);color:var(--dim)}
+.th .said{font-size:15.5px;font-weight:600;flex:1;min-width:200px}
+.th .t{font:400 11px/1 var(--mono);color:var(--muted)}
+.lane{font:600 10.5px/1 var(--mono);padding:4px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.06em}
+.lane.action{background:#3a1c0d;color:var(--orange)} .lane.retrieval{background:#0d2440;color:var(--blue)}
+.lane.data{background:#0b2e22;color:var(--green)} .lane.handoff{background:#24183f;color:var(--violet)} .lane.decline{background:#2a2f38;color:var(--muted)}
+.pipe{display:flex;align-items:center;gap:0;padding:12px 16px 4px;overflow-x:auto}
+.node{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px;font:500 11px/1.3 var(--mono);white-space:nowrap;color:var(--muted)}
+.node b{display:block;color:var(--ink);font-weight:500}
+.node.hot{border-color:var(--cyan);color:var(--cyan)}
+.arrow{width:24px;height:1px;background:linear-gradient(90deg,var(--dim),var(--cyan));flex:none;position:relative}
+.arrow::after{content:"";position:absolute;right:-1px;top:-3px;border:3.5px solid transparent;border-left-color:var(--cyan)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px;padding:12px 16px 16px}
+.blk{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:11px 12px;min-width:0}
+.blk h5{margin:0 0 9px;font:600 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
+.blk h5 em{font-style:normal;color:var(--cyan);letter-spacing:0;text-transform:none}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font:400 12px/1.55 var(--mono)}
+.kv span{color:var(--muted)}
+.kv b{font-weight:500;color:var(--ink);word-break:break-word}
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:150px 1fr 54px;gap:8px;align-items:center;font:400 11.5px/1 var(--mono)}
+.bar .tr{height:9px;border-radius:5px;background:#161d28;overflow:hidden;position:relative}
+.bar .tr i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:linear-gradient(90deg,#0e7490,var(--cyan))}
+.bar.top .tr i{background:linear-gradient(90deg,#b45309,var(--amber))}
+.bar .v{text-align:right;color:var(--ink)}
+.gate{position:relative;height:16px;margin:8px 0 0}
+.gate::before{content:"";position:absolute;left:0;right:0;top:7px;height:2px;background:#161d28}
+.gate .g{position:absolute;top:0;width:1px;height:16px;background:var(--red)}
+.gate .g::after{content:"gate 60%";position:absolute;top:-1px;left:4px;font:400 10px/1 var(--mono);color:var(--red);white-space:nowrap}
+.gate .c{position:absolute;top:3px;width:10px;height:10px;border-radius:50%;background:var(--amber);transform:translateX(-5px);box-shadow:0 0 8px var(--amber)}
+.math{font:400 11.5px/1.7 var(--mono);color:var(--muted);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+.math b{color:var(--amber);font-weight:500}
+.trace{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.trace li{display:grid;grid-template-columns:78px 1fr;gap:10px;font:400 11.5px/1.5 var(--mono);border-left:2px solid var(--dim);padding-left:9px}
+.trace li .l{color:var(--dim);text-transform:uppercase;font-size:10.5px}
+.trace li .w{color:var(--ink)}
+.trace li .d{display:block;color:var(--muted)}
+.trace li.guard{border-color:var(--red)} .trace li.guard .w{color:var(--red)}
+.trace li.model{border-color:var(--cyan)} .trace li.model .w{color:var(--cyan)}
+.trace li.laya{border-color:var(--violet)} .trace li.laya .w{color:var(--violet)}
+.trace li.db{border-color:var(--green)} .trace li.db .w{color:var(--green)}
+.trace li.rule{border-color:var(--amber)} .trace li.rule .w{color:var(--amber)}
+.trace li.act{border-color:var(--orange)} .trace li.act .w{color:var(--orange)}
+.wf{padding:4px 16px 12px}
+.wfrow{display:grid;grid-template-columns:120px 1fr 64px;gap:10px;align-items:center;font:400 11px/1 var(--mono);color:var(--muted);margin-top:6px}
+.wfrow .tr{height:10px;position:relative;background:#11161f;border-radius:3px}
+.wfrow .tr i{position:absolute;top:0;bottom:0;border-radius:3px}
+.wfrow .v{text-align:right;color:var(--ink)}
+.say{font-size:13.5px;line-height:1.55;color:#e8edf5;background:#0a1220;border:1px solid #142339;border-radius:8px;padding:10px 12px}
+pre{margin:0;font:400 11px/1.5 var(--mono);color:#9fb0c6;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
+details summary{cursor:pointer;font:500 11px/1 var(--mono);color:var(--muted);padding:10px 16px;border-top:1px solid var(--line)}
+details[open] summary{color:var(--cyan)}
+details pre{padding:0 16px 14px}
+.empty{color:var(--muted);font:400 13px/1.6 var(--mono);padding:40px 0;text-align:center}
+.flash{animation:flash 1.4s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 2px var(--cyan)}100%{box-shadow:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>openwallet</b>://agent-console</div>
+  <div class="live"><i></i>LIVE</div>
+  <div class="stack" id="stack"></div>
+</header>
+<main>
+  <aside>
+    <h6>Bots</h6><div id="bots"></div>
+    <h6 style="margin-top:16px">Sessions</h6><div id="sessions"></div>
+  </aside>
+  <section class="feed">
+    <div class="sum" id="sum"></div>
+    <div id="feed"><div class="empty">Open the assistant in the customer app — every turn appears here with everything that was computed for it.</div></div>
+  </section>
+</main>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago = t => { const s = Date.now() / 1000 - t; return s < 60 ? Math.round(s) + 's ago' : s < 3600 ? Math.round(s / 60) + 'm ago' : Math.round(s / 3600) + 'h ago'; };
+const ACTION = new Set(['send_money','pay_merchant','bill_pay','bill_schedule','split_payment','mobile_recharge','reminder_set','add_money','withdraw_money','link_bank','retry_payment','cancel_action']);
+const RETR = new Set(['journey_help','knowledge_query','fees_query','time_query','limits_query']);
+const HAND = new Set(['human_handoff','wrong_transfer','report_fraud']);
+const lane = i => ACTION.has(i) ? 'action' : RETR.has(i) ? 'retrieval' : HAND.has(i) ? 'handoff' : i === 'out_of_scope' ? 'decline' : 'data';
+let SEL = null, seen = 0, NLAB = '?';
+
+async function overview(){
+  let o; try { o = await fetch('api/cx/console/overview').then(r => r.json()); } catch(e){ return; }
+  const st = o.stack || {}, it = st.intent || {}; NLAB = it.labels || '?';
+  $('stack').innerHTML =
+    `<span class="chip c1">STT <b>${esc(st.stt && st.stt.model)}</b> · ${st.stt && st.stt.multilingual ? 'en/ar/hi' : 'en'}</span>` +
+    `<span class="chip c2">INTENT <b>${esc(it.name || '—')}</b> · ${it.params_millions || '?'}M params · ${it.labels || '?'} labels · p50 ${it.latency ? it.latency.p50_ms : '?'}ms</span>` +
+    `<span class="chip c3">2ND OPINION <b>${o.stack && o.stack.second_opinion ? 'laya' : 'laya'}</b></span>`;
+  $('bots').innerHTML = (o.bots || []).map(b => `<div class="bot"><div class="id">${esc(b.bot_id)}</div><div class="who">${esc(b.customer_name)} · ${esc(b.agent)} · login ${ago(b.last_login)}</div></div>`).join('') || '<div class="empty" style="padding:8px 0">no logins yet</div>';
+  const ss = o.sessions || [];
+  if (!SEL && ss[0]) SEL = ss[0].session_id;
+  $('sessions').innerHTML = ss.map(s => `<button class="ses ${s.session_id === SEL ? 'on' : ''}" data-s="${esc(s.session_id)}"><div class="id">${esc(s.session_id)}</div>
+    <div class="meta"><span>${esc(s.bot_id)}</span><span>${s.turns} turn${s.turns === 1 ? '' : 's'} · ${ago(s.last_at)}</span></div></button>`).join('');
+  $('sessions').querySelectorAll('.ses').forEach(b => b.onclick = () => { SEL = b.dataset.s; seen = 0; overview(); turns(); });
+}
+
+function probs(a){
+  const top = (a.top || []).map(t => [t.intent || t[0], t.p ?? t.confidence ?? t[1]]);
+  if (!top.length) return '<div class="kv"><span>decided by</span><b>a rule — the model was not needed</b></div>';
+  const p1 = top[0][1] || 0, p2 = (top[1] || [0, 0])[1] || 0;
+  const H = -top.reduce((s, [, p]) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+  return `<div class="bars">${top.map(([k, p], i) => `<div class="bar ${i === 0 ? 'top' : ''}"><span>${esc(k)}</span><span class="tr"><i style="width:${(p * 100).toFixed(1)}%"></i></span><span class="v">${(p * 100).toFixed(1)}%</span></div>`).join('')}</div>
+    <div class="gate"><span class="g" style="left:60%"></span><span class="c" style="left:${Math.min(100, p1 * 100)}%"></span></div>
+    <div class="math">p<sub>k</sub> = e<sup>z<sub>k</sub></sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub></sup> over ${NLAB} intents<br>
+      margin p₁ − p₂ = <b>${((p1 - p2) * 100).toFixed(1)} pts</b> · top-3 entropy H = <b>${H.toFixed(3)} bits</b><br>
+      ${p1 >= 0.6 ? `p₁ ≥ 0.60 → <b>act on the label</b>` : `p₁ < 0.60 → <b>ask, or let rules / neighbours decide</b>`}</div>`;
+}
+
+function turnCard(t, n){
+  const a = t.answer || {}, s = t.stt || {};
+  const L = lane(a.intent);
+  const trace = (a.lane_trace || []).map(x => `<li class="${esc(x.tag)}"><span class="l">${esc(x.lane)}</span><span><span class="w">${esc(x.what)}</span><span class="d">${esc(x.detail)}</span></span></li>`).join('');
+  const laya = (a.lane_trace || []).find(x => x.tag === 'laya');
+  const sttMs = s.ms || 0, detect = s.detect_ms || 0, net = s.roundtrip_ms ? Math.max(0, s.roundtrip_ms - sttMs) : 0, eng = a.ms || 0, total = (s.roundtrip_ms || 0) + (t.ms || eng);
+  const scale = Math.max(1, total);
+  const wf = [['speech: detect', 0, detect, 'var(--violet)'], ['speech: decode', detect, sttMs - detect, 'var(--cyan)'],
+              ['network', sttMs, net, 'var(--dim)'], ['engine + model', sttMs + net, t.ms || eng, 'var(--amber)']]
+    .filter(r => r[2] > 0).map(([k, x, w, c]) => `<div class="wfrow"><span>${k}</span><span class="tr"><i style="left:${x / scale * 100}%;width:${Math.max(.6, w / scale * 100)}%;background:${c}"></i></span><span class="v">${Math.round(w)} ms</span></div>`).join('');
+  const computed = ['rank', 'spend', 'txn', 'proposal', 'slots'].filter(k => a[k] && (typeof a[k] !== 'object' || Object.keys(a[k]).length))
+    .map(k => `<div style="margin-top:6px"><span style="color:var(--dim);font:500 10.5px var(--mono);text-transform:uppercase">${k}</span><pre>${esc(JSON.stringify(a[k], null, 1))}</pre></div>`).join('');
+  return `<div class="turn" id="t${t.id}">
+    <div class="th"><span class="n">#${n}</span><span class="said">“${esc(t.text)}”</span><span class="lane ${L}">${L}</span><span class="t">${new Date(t.at * 1000).toLocaleTimeString()} · ${esc(a.intent)} · ${esc(a.outcome || '')}</span></div>
+    <div class="pipe">
+      <span class="node ${s.text ? 'hot' : ''}"><b>${s.text ? 'voice' : 'typed'}</b>${s.text ? (s.seconds ? s.seconds.toFixed(1) + 's audio' : 'audio') : 'text'}</span><span class="arrow"></span>
+      ${s.text ? `<span class="node hot"><b>whisper</b>${esc(s.lang || '?')}${s.sticky_lang ? ' (session)' : s.detected ? ' (detected)' : ''}</span><span class="arrow"></span>` : ''}
+      <span class="node hot"><b>guards</b>scope · abuse</span><span class="arrow"></span>
+      <span class="node ${a.model && a.model.startsWith('openwallet') ? 'hot' : ''}"><b>${esc(a.model && a.model.startsWith('openwallet') ? 'intent model' : 'rule')}</b>${esc(a.model || '')}</span><span class="arrow"></span>
+      ${laya ? `<span class="node hot"><b>2nd opinion</b>${esc(laya.what)}</span><span class="arrow"></span>` : ''}
+      <span class="node hot"><b>handler</b>${esc(a.intent)}</span><span class="arrow"></span>
+      <span class="node hot"><b>reply</b>${esc(a.outcome || '')}</span>
+    </div>
+    <div class="wf">${wf}</div>
+    <div class="grid">
+      ${s.text ? `<div class="blk"><h5>Speech → text <em>${s.ms || '?'} ms</em></h5><div class="kv">
+        <span>model</span><b>${esc(s.model)} · ${esc(s.engine)}</b>
+        <span>language</span><b>${esc(s.lang)}${s.detected ? ` · detected p=${(s.detected_p || 0).toFixed(3)}` : ''}${s.sticky_lang ? ' · reused from this session' : ''}</b>
+        <span>audio</span><b>${s.seconds != null ? s.seconds.toFixed(2) + ' s' : '?'} → window ${s.audio_ctx ?? '?'} frames (${s.audio_ctx ? (s.audio_ctx * 0.02).toFixed(1) + ' s' : 'full 30 s'})</b>
+        <span>decoding</span><b>${esc(s.decode || '')} · temperature fallback off</b>
+        <span>detect / decode</span><b>${detect} ms / ${sttMs - detect} ms</b>
+        <span>round trip</span><b>${s.roundtrip_ms ?? '?'} ms</b>
+        <span>heard</span><b>“${esc(s.text)}”</b></div></div>` : ''}
+      <div class="blk"><h5>Intent model <em>${a.confidence != null ? (a.confidence * 100).toFixed(1) + '%' : ''}</em></h5>${probs(a)}</div>
+      <div class="blk"><h5>Decision trace <em>${(a.lane_trace || []).length} steps</em></h5><ul class="trace">${trace}</ul></div>
+      <div class="blk"><h5>Reply <em>${esc(a.lang || 'en')}</em></h5><div class="say">${esc(a.say || '(no text — the app acts on the outcome)')}</div>
+        ${computed ? `<h5 style="margin-top:12px">Computed from data</h5>${computed}` : ''}</div>
+    </div>
+    <details><summary>raw turn JSON</summary><pre>${esc(JSON.stringify(t, null, 1))}</pre></details>
+  </div>`;
+}
+
+async function turns(){
+  if (!SEL) return;
+  let rows; try { rows = await fetch('api/cx/console/turns?session=' + encodeURIComponent(SEL)).then(r => r.json()); } catch(e){ return; }
+  if (!rows.length){ $('feed').innerHTML = '<div class="empty">No turns in this session yet.</div>'; $('sum').innerHTML = ''; return; }
+  const voice = rows.filter(r => r.stt && r.stt.text);
+  const avg = xs => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0;
+  $('sum').innerHTML = [
+    ['session', SEL.slice(0, 12) + '…', ''], ['turns', rows.length, `${voice.length} voice`],
+    ['avg speech→text', avg(voice.map(r => r.stt.ms || 0)), 'ms'], ['avg engine', avg(rows.map(r => r.ms || 0)), 'ms'],
+    ['model-decided', rows.filter(r => (r.answer.model || '').startsWith('openwallet')).length, `of ${rows.length}`],
+  ].map(([k, v, u]) => `<div class="kpi"><span>${k}</span><b>${esc(v)}</b><small>${esc(u)}</small></div>`).join('');
+  if (rows.length === seen) return;
+  const fresh = rows.length > seen && seen > 0;
+  seen = rows.length;
+  $('feed').innerHTML = rows.map((t, i) => turnCard(t, i + 1)).reverse().join('');
+  if (fresh){ const el = $('feed').firstElementChild; el && el.classList.add('flash'); }
+}
+
+overview(); turns();
+setInterval(overview, 3000); setInterval(turns, 2000);
+})();
+</script>
+</body>
+</html>

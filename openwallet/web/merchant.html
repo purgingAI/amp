@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenWallet · Merchant</title>
+<style>
+  :root{
+    --red:#ef1a23; --orange:#f18918; --gold:#fbc007; --green:#28a745; --teal:#0b7285;
+    --ink:#101420; --panel:#151a28; --panel2:#1c2231; --line:#262d3f;
+    --muted:#8b93a5; --dim:#5d6578;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:
+       radial-gradient(900px 500px at 80% -10%,rgba(241,137,24,.14),transparent),
+       radial-gradient(700px 420px at 10% 110%,rgba(11,114,133,.16),transparent),
+       var(--ink);
+       color:#eef1f6;font:15px/1.55 var(--ui);display:flex;justify-content:center;
+       align-items:center;overflow:hidden}
+
+  .till{width:min(520px,100%);padding:22px}
+  .head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;
+        background:linear-gradient(135deg,var(--red),var(--orange));
+        box-shadow:0 8px 24px rgba(239,26,35,.34)}
+  .head h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.2px}
+  .head .sub{font-size:12.5px;color:var(--muted)}
+  .live{margin-left:auto;font:700 10.5px var(--mono);letter-spacing:.6px;padding:5px 11px;
+        border-radius:999px;background:rgba(40,167,69,.14);color:#7ee2a0;
+        border:1px solid rgba(40,167,69,.35);display:flex;align-items:center;gap:7px}
+  .live i{width:7px;height:7px;border-radius:50%;background:#7ee2a0;display:block;
+          animation:bl 1.6s infinite}
+  @keyframes bl{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .card{background:linear-gradient(160deg,var(--panel2),var(--panel));
+        border:1px solid var(--line);border-radius:20px;padding:24px;position:relative;
+        overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  .card:before{content:"";position:absolute;inset:0;
+               background:radial-gradient(500px 140px at 20% -20%,rgba(255,255,255,.07),transparent)}
+
+  .lbl{font:700 10px var(--ui);letter-spacing:1.3px;color:var(--dim);text-transform:uppercase}
+  .amount{font-size:52px;font-weight:800;letter-spacing:-1.6px;margin:6px 0 2px;
+          font-variant-numeric:tabular-nums;position:relative;z-index:1;
+          background:linear-gradient(135deg,#fff,#ffd98a);-webkit-background-clip:text;
+          background-clip:text;color:transparent}
+  .amount small{font-size:20px;opacity:.65;letter-spacing:0;-webkit-text-fill-color:#cfd6e4}
+
+  .strike{display:flex;align-items:baseline;gap:10px;margin-top:4px;position:relative;z-index:1;
+          opacity:0;transform:translateY(6px);transition:all .5s}
+  .strike.show{opacity:1;transform:none}
+  .strike s{color:var(--dim);font-size:15px}
+  .strike b{color:#7ee2a0;font-size:13px;background:rgba(40,167,69,.14);
+            border:1px solid rgba(40,167,69,.34);border-radius:999px;padding:3px 10px}
+
+  .who{margin-top:20px;display:flex;align-items:center;gap:12px;position:relative;z-index:1;
+       opacity:0;transform:translateX(-10px);transition:all .5s .15s}
+  .who.show{opacity:1;transform:none}
+  .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:800;
+      background:linear-gradient(135deg,var(--teal),#1098ad);font-size:15px}
+  .who .n{font-weight:700}
+  .who .m{font-size:12px;color:var(--muted);font-family:var(--mono)}
+
+  .ring{position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;
+        border:1px solid rgba(255,255,255,.07)}
+  .ring.b{right:-90px;top:-90px;width:280px;height:280px}
+
+  /* the moment of payment */
+  .burst{position:fixed;inset:0;pointer-events:none;z-index:40}
+  .coin{position:absolute;width:13px;height:13px;border-radius:50%;
+        background:radial-gradient(circle at 34% 30%,#fff2c2,var(--gold) 58%,#c88f05);
+        box-shadow:0 0 12px rgba(251,192,7,.85)}
+  @keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(.3) rotate(540deg);opacity:0}}
+
+  .flash{position:fixed;inset:0;background:radial-gradient(circle at 50% 42%,
+         rgba(251,192,7,.3),transparent 62%);opacity:0;pointer-events:none;z-index:30}
+  .flash.go{animation:fl 1s ease-out}
+  @keyframes fl{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+
+  .tick{width:84px;height:84px;margin:0 auto;position:relative}
+  .tick svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .tick circle{fill:none;stroke-width:5;stroke-linecap:round}
+  .tick .bg{stroke:rgba(255,255,255,.1)}
+  .tick .fg{stroke:#7ee2a0;stroke-dasharray:226;stroke-dashoffset:226;
+            transition:stroke-dashoffset .8s cubic-bezier(.22,1,.36,1)}
+  .tick.done .fg{stroke-dashoffset:0}
+  .tick .mark{position:absolute;inset:0;display:grid;place-items:center;font-size:33px;
+              opacity:0;transform:scale(.4)}
+  .tick.done .mark{animation:mk .5s .45s cubic-bezier(.34,1.56,.64,1) forwards}
+  @keyframes mk{to{opacity:1;transform:scale(1)}}
+
+  .stage{min-height:240px;display:grid;place-items:center}
+  .idle{text-align:center;color:var(--muted)}
+  .idle .big{font-size:46px;margin-bottom:10px;opacity:.45;
+             animation:hover 3.4s ease-in-out infinite}
+  @keyframes hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+  .totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+  .t{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:13px;
+     padding:12px 13px}
+  .t .k{font:700 9.5px var(--ui);letter-spacing:1px;color:var(--dim);text-transform:uppercase}
+  .t .v{font-size:19px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+
+  .feed{margin-top:16px;max-height:150px;overflow:auto}
+  .fr{display:flex;gap:10px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line);
+      font-size:13px;animation:slip .45s cubic-bezier(.34,1.4,.64,1) both}
+  .fr:last-child{border-bottom:0}
+  @keyframes slip{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+  .fr .d{width:8px;height:8px;border-radius:50%;background:#7ee2a0;flex:0 0 auto}
+  .fr .amt{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+  .fr .dc{font-size:11px;color:var(--gold)}
+  .foot{margin-top:14px;text-align:center;font-size:11.5px;color:var(--dim)}
+  .foot a{color:var(--orange);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="till">
+  <div class="head">
+    <div class="logo">&#9749;</div>
+    <div>
+      <h1 id="mname">Mocha &amp; More</h1>
+      <div class="sub" id="msub">Cafe · MID7741</div>
+    </div>
+    <div class="live"><i></i>TILL LIVE</div>
+  </div>
+
+  <div class="card">
+    <div class="ring"></div><div class="ring b"></div>
+    <div class="stage" id="stage">
+      <div class="idle" id="idle">
+        <div class="big">&#128179;</div>
+        <div>Waiting for a customer</div>
+        <div style="font-size:12px;margin-top:5px;color:var(--dim)">
+          No QR. They just say what they want to pay.</div>
+      </div>
+    </div>
+
+    <div class="totals">
+      <div class="t"><div class="k">Today</div><div class="v" id="t-total">AED 0</div></div>
+      <div class="t"><div class="k">Payments</div><div class="v" id="t-count">0</div></div>
+      <div class="t"><div class="k">Discounts given</div><div class="v" id="t-disc">AED 0</div></div>
+    </div>
+
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <div class="foot">Offers come from the campaign engine · see the
+    <a href="watch" target="_blank">decision screen</a> for how each payment was decided</div>
+</div>
+
+<div class="flash" id="flash"></div>
+<div class="burst" id="burst"></div>
+
+<script>
+const BASE = new URL('.', location.href).pathname;
+const $ = id => document.getElementById(id);
+let total = 0, count = 0, discounts = 0;
+
+fetch(BASE + 'api/cx/context').then(r => r.json()).then(d => {
+  const m = (d.merchants || [])[0];
+  if (m){ $('mname').textContent = m.name; $('msub').textContent = m.category + ' · ' + m.mid; }
+}).catch(()=>{});
+
+function money(v){ return 'AED ' + Number(v).toLocaleString(undefined,
+  {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function coins(n){
+  const b = $('burst');
+  for (let i = 0; i < n; i++){
+    const c = document.createElement('div');
+    c.className = 'coin';
+    c.style.left = (window.innerWidth/2 - 6) + 'px';
+    c.style.top  = (window.innerHeight*0.42) + 'px';
+    const a = Math.random()*Math.PI*2, r = 130 + Math.random()*230;
+    c.style.setProperty('--dx', Math.cos(a)*r + 'px');
+    c.style.setProperty('--dy', (Math.sin(a)*r - 120) + 'px');
+    c.style.animation = `fly ${0.9 + Math.random()*0.7}s cubic-bezier(.2,.7,.3,1) ${Math.random()*0.22}s forwards`;
+    b.appendChild(c);
+    setTimeout(() => c.remove(), 2200);
+  }
+}
+
+function arrive(p){
+  $('flash').classList.remove('go'); void $('flash').offsetWidth; $('flash').classList.add('go');
+  coins(26);
+
+  const gross = p.amount != null ? p.amount : p.payable;
+  const disc = p.discount || 0;
+  $('stage').innerHTML = `
+    <div style="width:100%">
+      <div class="lbl">Received</div>
+      <div class="amount">${money(p.payable)}<small></small></div>
+      <div class="strike" id="st">
+        ${disc ? `<s>${money(gross)}</s><b>${p.label || 'offer applied'} · −${money(disc)}</b>` : ''}
+      </div>
+      <div class="who" id="wh">
+        <div class="av">${(p.from || 'S')[0].toUpperCase()}</div>
+        <div><div class="n">${p.from || 'Customer'}</div>
+             <div class="m">${p.ref || ''}</div></div>
+        <div style="margin-left:auto" class="tick" id="tk">
+          <svg viewBox="0 0 80 80"><circle class="bg" cx="40" cy="40" r="36"/>
+            <circle class="fg" cx="40" cy="40" r="36"/></svg>
+          <div class="mark">&#9989;</div>
+        </div>
+      </div>
+    </div>`;
+  requestAnimationFrame(() => {
+    $('st').classList.add('show'); $('wh').classList.add('show');
+    setTimeout(() => $('tk').classList.add('done'), 220);
+  });
+
+  total += Number(p.payable) || 0; count += 1; discounts += disc;
+  $('t-total').textContent = money(total);
+  $('t-count').textContent = count;
+  $('t-disc').textContent = money(discounts);
+
+  const row = document.createElement('div');
+  row.className = 'fr';
+  row.innerHTML = `<span class="d"></span>
+    <span>${p.from || 'Customer'}${disc ? ' <span class="dc">· offer</span>' : ''}</span>
+    <span class="amt">${money(p.payable)}</span>`;
+  $('feed').prepend(row);
+}
+
+// The till listens to the same event stream as everything else, so what it shows is the
+// payment that actually happened rather than a separate story told by the screen.
+let armed = false;
+const es = new EventSource(BASE + 'events');
+es.onmessage = e => {
+  const ev = JSON.parse(e.data);
+  // Only celebrate payments that happened after this till was opened.
+  if (ev.replay && !armed) return;
+  if (ev.kind === 'cx.answer'){
+    let d = {}; try { d = JSON.parse(ev.detail); } catch(_){}
+    if (d.proposal && d.proposal.kind === 'pay_merchant'){
+      armed = d.proposal;                       // a merchant payment is being proposed
+    }
+    return;
+  }
+  if (ev.kind === 'transaction.success' && armed){
+    const m = /txnId (\S+)/.exec(ev.detail || '');
+    arrive({payable: armed.payable, amount: armed.amount, discount: armed.discount,
+            label: armed.campaign ? 'campaign ' + armed.campaign : 'offer applied',
+            from: 'Sagar Uniyal', ref: m ? m[1] : ''});
+    armed = false;
+  }
+};
+</script>
+</body>
+</html>

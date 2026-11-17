@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayI — Sagar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="/static/payi.css">
+<style>
+body[data-product=palmpay]{--accent:var(--palm)}
+.layout{height:calc(100vh - 60px);display:grid;grid-template-columns:390px minmax(0,1fr);gap:16px;padding:16px 20px 18px}
+
+/* Jarvis column */
+.jarvis{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;overflow:hidden}
+.orbwrap{display:grid;justify-items:center;gap:6px;padding:16px 0 6px;border-bottom:1px solid var(--line)}
+#orb{width:220px;height:220px}
+.orbstate{font:500 11px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.orbsub{font-size:12px;color:var(--dim)}
+.convo{padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:9px 12px;border-radius:12px;line-height:1.45;animation:rise .3s both}
+.msg.me{align-self:flex-end;background:var(--raise);border:1px solid var(--line2);border-bottom-right-radius:4px}
+.msg.j{align-self:flex-start;display:flex;gap:9px;padding-left:4px}
+.msg.j::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;margin-top:7px;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.msg.sys{align-self:stretch;max-width:none;font:500 11px/1.4 var(--mono);color:var(--dim);text-align:center;padding:2px}
+.card{align-self:stretch;max-width:none;border:1px solid var(--line2);background:var(--panel2);border-radius:12px;padding:14px;display:grid;gap:10px;animation:rise .35s both}
+.card .amt{font:600 30px/1 var(--ui);letter-spacing:-.02em}
+.card .amt small{font:500 14px/1 var(--mono);color:var(--muted);margin-left:6px}
+.card .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px}
+.card .kv span:nth-child(odd){color:var(--dim)} .card .kv span:nth-child(even){font-family:var(--mono);text-align:right;color:var(--muted)}
+.card .acts{display:flex;gap:8px}
+.card .acts .btn{flex:1}
+.card.done{border-color:color-mix(in oklab,var(--ok) 45%,var(--line2))}
+.card.bad{border-color:color-mix(in oklab,var(--red) 45%,var(--line2))}
+.card.warn{border-color:color-mix(in oklab,var(--amber) 45%,var(--line2))}
+.touch{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:1px dashed color-mix(in oklab,var(--amber) 55%,transparent);background:color-mix(in oklab,var(--amber) 7%,transparent)}
+.touch b{display:block;font:600 13px var(--ui)} .touch small{color:var(--muted);font-size:11.5px}
+.touch .fp{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--amber);border:1.5px solid var(--amber);animation:fp 1.6s ease-in-out infinite;flex:none}
+.touch .fp svg{width:22px;height:22px}
+.touch.paying{border-color:color-mix(in oklab,var(--accent) 45%,transparent);background:color-mix(in oklab,var(--accent) 6%,transparent)} .touch.paying .fp{color:var(--accent);border-color:var(--accent)}
+.touch.ok{border-style:solid;border-color:color-mix(in oklab,var(--ok) 55%,transparent);background:color-mix(in oklab,var(--ok) 7%,transparent)} .touch.ok .fp{color:var(--ok);border-color:var(--ok);animation:none}
+.touch.no{border-color:color-mix(in oklab,var(--red) 55%,transparent)} .touch.no .fp{color:var(--red);border-color:var(--red);animation:none}
+@keyframes fp{0%,100%{box-shadow:0 0 0 0 color-mix(in oklab,var(--amber) 50%,transparent)}50%{box-shadow:0 0 0 9px transparent}}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0}
+.sugg button{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:6px 11px;font:500 12px/1 var(--ui);color:var(--muted);cursor:pointer}
+.sugg button:hover{color:var(--ink);border-color:var(--faint)}
+.composer{display:flex;gap:8px;align-items:center;padding:12px 14px 14px}
+.mic{width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);background:var(--raise);display:grid;place-items:center;cursor:pointer;flex:none;transition:.2s}
+.mic svg{width:20px;height:20px}
+.mic.on{background:var(--accent);color:#041018;border-color:transparent;box-shadow:0 0 0 6px color-mix(in oklab,var(--accent) 18%,transparent),0 0 30px var(--accent)}
+.inp{flex:1;min-width:0;height:46px;border-radius:12px;border:1px solid var(--line2);background:var(--bg2);display:flex;align-items:center;padding:0 6px 0 14px}
+.inp input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 14px var(--ui);outline:none}
+.inp input::placeholder{color:var(--dim)}
+.inp button{border:0;background:transparent;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:var(--muted);cursor:pointer}
+.inp button svg{width:18px;height:18px}
+
+/* views */
+.view{min-width:0;min-height:0;display:none}
+.view.on{display:grid}
+#v-payi{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:16px}
+.wallet{padding:22px;display:grid;gap:14px;grid-column:1/-1;grid-template-columns:minmax(0,1fr) auto;align-items:end}
+.wallet .big{font:600 52px/1 var(--ui);letter-spacing:-.03em}
+.wallet .big small{font:500 18px var(--mono);color:var(--muted);margin-left:8px;letter-spacing:0}
+.tiers{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.tier{border:1px solid var(--line2);border-radius:12px;padding:10px 12px;min-width:150px;display:grid;gap:4px}
+.tier b{font:600 13px var(--ui)} .tier span{font-size:12px;color:var(--muted)}
+.mandates{display:grid;gap:12px;align-content:start}
+.mandate{padding:16px;display:grid;gap:12px}
+.mandate .top{display:flex;align-items:center;gap:12px}
+.avatar{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font:600 14px var(--ui);background:var(--raise);border:1px solid var(--line2)}
+.mandate h3{margin:0;font:600 15px var(--ui)} .mandate .sub{font:500 11px var(--mono);color:var(--dim)}
+.limits{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.limits div{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;display:grid;gap:3px}
+.limits b{font:600 15px var(--mono)} .limits span{font-size:11px;color:var(--dim)}
+.sigs{display:flex;gap:14px;flex-wrap:wrap;font-size:12px}
+.activity{padding:0;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.act{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:11px 16px;border-top:1px solid var(--line)}
+.act .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--raise)}
+.act .ic svg{width:17px;height:17px}
+.act b{font-weight:550} .act small{display:block;color:var(--dim);font-size:11.5px}
+.act .a{font:600 14px var(--mono)}
+.empty{padding:26px 16px;color:var(--dim);text-align:center;font-size:13px}
+
+#v-palm{grid-template-columns:minmax(0,1fr) 340px;gap:16px}
+.plan{display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+.plan svg{width:100%;height:100%;display:block;touch-action:none;user-select:none}
+.planctl{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px 16px;align-items:center}
+.planctl .toggle{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.sw{width:34px;height:20px;border-radius:999px;background:var(--line2);position:relative;transition:.2s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--ink);transition:.2s}
+.toggle[aria-checked=true] .sw{background:var(--accent)} .toggle[aria-checked=true] .sw::after{left:17px;background:#041018}
+.side{display:grid;gap:16px;align-content:start;min-height:0;overflow:auto}
+.phonecard{padding:16px;display:grid;gap:12px}
+.phonecard .state{display:flex;align-items:center;gap:12px}
+.ring{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line2);flex:none}
+.ring.on{border-color:var(--palm);box-shadow:0 0 18px -4px var(--palm);color:var(--palm)}
+.ring svg{width:20px;height:20px}
+.phonecard h3{margin:0;font:600 15px var(--ui)} .phonecard p{margin:0;font-size:12px;color:var(--dim)}
+.kv2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;font-size:12px}
+.kv2 span:nth-child(odd){color:var(--dim)} .kv2 span:nth-child(even){text-align:right;font-family:var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.menu button{border:1px solid var(--line2);background:var(--bg2);border-radius:10px;padding:9px 10px;text-align:left;cursor:pointer;display:grid;gap:2px;transition:.15s}
+.menu button b{font:550 12.5px var(--ui)} .menu button span{font:500 11.5px var(--mono);color:var(--dim)}
+.menu button[aria-pressed=true]{border-color:var(--palm);background:color-mix(in oklab,var(--palm) 9%,var(--bg2))}
+.menu button[aria-pressed=true] span{color:var(--palm)}
+.total{display:flex;align-items:baseline;justify-content:space-between}
+.total b{font:600 28px var(--ui);letter-spacing:-.02em}
+.range{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.range .mono{color:var(--ink)}
+.bigbtn{height:50px;font-size:14px;border-radius:12px;width:100%}
+
+/* camera modal */
+.modal{position:fixed;inset:0;background:rgba(3,5,9,.72);backdrop-filter:blur(8px);display:none;place-items:center;z-index:50}
+.modal.on{display:grid}
+.cam{width:min(980px,94vw);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);overflow:hidden}
+.feed{position:relative;background:#000;aspect-ratio:4/3}
+.feed video,.feed canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.hud{position:absolute;inset:18px;pointer-events:none}
+.hud i{position:absolute;width:26px;height:26px;border:2px solid var(--accent);opacity:.8}
+.hud i:nth-child(1){top:0;left:0;border-right:0;border-bottom:0}.hud i:nth-child(2){top:0;right:0;border-left:0;border-bottom:0}
+.hud i:nth-child(3){bottom:0;left:0;border-right:0;border-top:0}.hud i:nth-child(4){bottom:0;right:0;border-left:0;border-top:0}
+.scanline{position:absolute;left:18px;right:18px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scan 2.2s ease-in-out infinite;opacity:.7}
+@keyframes scan{0%{top:18px}50%{top:calc(100% - 20px)}100%{top:18px}}
+.feedmsg{position:absolute;left:0;right:0;bottom:16px;text-align:center;font:500 12px var(--mono);letter-spacing:.08em;color:var(--ink);text-shadow:0 1px 8px #000}
+.camside{padding:22px;display:grid;gap:14px;align-content:start}
+.camside h2{margin:0;font:600 20px var(--ui);letter-spacing:-.01em}
+.camside p{margin:0;color:var(--muted);font-size:13px}
+.steps{display:grid;gap:8px}
+.step{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim)}
+.step i{width:22px;height:22px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;font:600 11px var(--mono);font-style:normal}
+.step.on{color:var(--ink)} .step.on i{border-color:var(--accent);color:var(--accent)}
+.step.done{color:var(--muted)} .step.done i{background:var(--accent);border-color:transparent;color:#041018}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.camacts{display:grid;gap:8px}
+.demo-note{font-size:11.5px;color:var(--dim)}
+@media (max-width:1250px){.layout{grid-template-columns:340px minmax(0,1fr)} #orb{width:180px;height:180px} #v-palm{grid-template-columns:minmax(0,1fr) 300px}}
+</style>
+</head>
+<body data-product="payi">
+<header class="topbar">
+  <div class="brand"><span class="mark"></span><div><b id="brandname">Pay<i>I</i></b><small id="brandsub">paid by AI</small></div></div>
+  <nav class="seg" aria-label="Product">
+    <button data-p="payi" aria-pressed="true" style="color:var(--payi)"><span class="pdot"></span><span style="color:var(--ink)">PayI</span><small>people</small></button>
+    <button data-p="palmpay" aria-pressed="false" style="color:var(--palm)"><span class="pdot"></span><span style="color:var(--ink)">PalmPay</span><small>stores</small></button>
+  </nav>
+  <span class="chip" style="color:var(--voice)"><span class="dot" style="background:var(--voice);box-shadow:0 0 10px var(--voice)"></span><b style="color:var(--voice)">VoicePay</b> on</span>
+  <div class="spacer"></div>
+  <span class="chip on" id="c-key"><span class="dot"></span>Device key <b>…</b></span>
+  <button class="chip" id="c-voice" style="cursor:pointer"><span class="dot"></span>Voice ID <b>not set</b></button>
+  <span class="chip" id="c-palm"><span class="dot"></span>Palm <b>not enrolled</b></span>
+  <button class="btn ghost sm" id="reset" title="Reset the demo ledger"><span style="display:contents" id="reseticon"></span>Reset</button>
+</header>
+
+<main class="layout">
+  <aside class="panel jarvis">
+    <div class="orbwrap">
+      <canvas id="orb"></canvas>
+      <div class="orbstate" id="orbstate">Standing by</div>
+      <div class="orbsub" id="orbsub">Say “Jarvis, send Alex 20 dirhams”</div>
+    </div>
+    <div class="convo scroll" id="convo"></div>
+    <div class="sugg" id="sugg"></div>
+    <div class="composer">
+      <button class="mic" id="mic" title="Talk to Jarvis (space)"></button>
+      <form class="inp" id="form"><input id="text" autocomplete="off" placeholder="Talk or type to Jarvis…"><button id="sendbtn" type="submit" title="Send"></button></form>
+    </div>
+  </aside>
+
+  <section class="view on" id="v-payi">
+    <div class="panel wallet">
+      <div>
+        <div class="label">Sagar's wallet · AED</div>
+        <div class="big num" style="margin-top:12px"><span id="bal" data-v="0">0.00</span><small>AED</small></div>
+        <div class="muted" style="margin-top:10px;font-size:12.5px" id="balsub">Balance is the sum of ledger entries — never a stored number.</div>
+      </div>
+      <div class="tiers" id="tiers"></div>
+    </div>
+    <div class="mandates scroll" id="mandates"></div>
+    <div class="panel activity">
+      <div class="panel-h" style="padding-bottom:12px"><span class="label">Recent payments</span><div class="spacer"></div><span class="pill voice">VoicePay</span><span class="pill palm">PalmPay</span></div>
+      <div class="scroll" id="activity"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-palm">
+    <div class="panel plan">
+      <div class="panel-h"><span class="label">Falcon Café · floor plan</span><div class="spacer"></div>
+        <span class="muted" style="font-size:12px">Drag <b style="color:var(--ink)">You</b> through the gate, or use the buttons</span></div>
+      <svg id="svg" viewBox="0 0 540 520" aria-label="Store floor plan"></svg>
+      <div class="planctl">
+        <button class="btn sm" data-walk="in">Walk in</button>
+        <button class="btn sm" data-walk="till">Go to the till</button>
+        <button class="btn sm" data-walk="past">Walk past</button>
+        <button class="btn sm" data-walk="out">Walk out</button>
+        <div class="toggle" id="queue" role="switch" aria-checked="false" tabindex="0"><span class="sw"></span>Shopper behind me</div>
+      </div>
+    </div>
+    <div class="side scroll">
+      <div class="panel phonecard">
+        <div class="label">Sagar's phone · PalmPay</div>
+        <div class="state"><div class="ring" id="passring"></div><div><h3 id="passh">Not checked in</h3><p id="passp">Walk in through the gate — your phone checks the store and makes a pass.</p></div></div>
+        <div class="kv2" id="passkv"></div>
+        <div class="bar" id="capbar" hidden><i style="width:0"></i></div>
+        <div style="display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:12px">
+          <div style="flex:1;font-size:12px"><div class="muted">Palm template</div><div class="mono" id="palmline" style="font-size:12px">not enrolled</div></div>
+          <button class="btn sm" id="enrolbtn">Enrol palm</button>
+        </div>
+      </div>
+      <div class="panel phonecard">
+        <div class="row" style="display:flex;justify-content:space-between;align-items:center"><div class="label">till-1 · counter</div><span class="pill palm">palm reader</span></div>
+        <div class="menu" id="menu"></div>
+        <div class="total"><span class="muted">Total</span><b class="num"><span id="total">0.00</span> <small class="mono muted" style="font-size:13px">AED</small></b></div>
+        <div class="range" id="range"></div>
+        <button class="btn primary bigbtn" id="paybtn"></button>
+        <div class="demo-note">No card, no phone in hand. Or say “pay here” to Jarvis.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="vmodal">
+  <div class="panel" style="width:min(560px,94vw);padding:26px;display:grid;gap:16px">
+    <div class="label">PayI · Voice ID</div>
+    <h2 style="margin:0;font:600 21px var(--ui)">Teach Jarvis your voice</h2>
+    <p class="muted" style="margin:0;font-size:13px">Read each line when it lights up. Only a voiceprint — a list of numbers — is kept, on this laptop. Anyone else's voice will be ignored.</p>
+    <div class="steps" id="vlines"></div>
+    <div class="prog"><i id="vlevel"></i></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" id="vcancel">Cancel</button><button class="btn primary" id="vstart">Start</button></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="panel cam">
+    <div class="feed"><video id="video" playsinline muted></video><canvas id="overlay"></canvas>
+      <div class="hud"><i></i><i></i><i></i><i></i></div><div class="scanline"></div><div class="feedmsg" id="feedmsg">Starting camera…</div></div>
+    <div class="camside">
+      <div class="label" id="camlabel">Palm</div>
+      <h2 id="camtitle">Enrol your palm</h2>
+      <p id="camtext"></p>
+      <div class="steps" id="steps"></div>
+      <div class="prog"><i id="prog"></i></div>
+      <div class="camacts" id="camacts"></div>
+      <div class="demo-note" id="camnote"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/payi.js"></script>
+<script>
+const S = {product: "payi", state: null, pending: null, stepflow: null, voiceTurn: false, busy: false, items: new Set(["Flat white", "Croissant"])};
+const MENU = [["Flat white", 18], ["Cappuccino", 19], ["Croissant", 14.5], ["Sparkling water", 8], ["Club sandwich", 36], ["Catering order", 290]];
+const orb = Orb($("#orb"));
+$("#mic").innerHTML = ICON.mic; $("#sendbtn").innerHTML = ICON.send; $("#reseticon").innerHTML = ICON.reset;
+
+// ── orb + voice state ──
+function setOrb(s, sub) {
+  orb.set(s);
+  $("#orbstate").textContent = {idle: "Standing by", listening: "Listening", thinking: "Working", speaking: "Speaking", stepup: "Needs your palm", error: "Refused"}[s] || s;
+  if (sub !== undefined) $("#orbsub").textContent = sub;
+}
+Voice.onstart = () => setOrb(orb.state === "stepup" ? "stepup" : "speaking");
+Voice.onend = () => { if (orb.state === "speaking") setOrb(S.pending ? "stepup" : "idle"); };
+function jarvis(text, opts = {}) {
+  add("j", esc(text)); Voice.say(text);
+  if (opts.listenAfter && S.voiceTurn) S.autoListen = true;
+}
+function add(kind, html) {
+  const d = document.createElement("div"); d.className = kind === "card" ? "card" : "msg " + kind; d.innerHTML = html;
+  $("#convo").append(d); $("#convo").scrollTop = 1e9; return d;
+}
+
+// ── suggestions per product ──
+const SUGG = {
+  payi: ["Send Alex 20 dirhams", "Send Alex 150 dirhams", "Send Vikram 20 dirhams", "What's my balance?"],
+  palmpay: ["Walk in", "Go to the till", "Pay here", "Walk out"],
+};
+function renderSugg() {
+  $("#sugg").innerHTML = SUGG[S.product].map(s => `<button>${esc(s)}</button>`).join("");
+  $$("#sugg button").forEach(b => b.onclick = () => { S.voiceTurn = false; handle(b.textContent); });
+}
+
+// ── product switch ──
+function setProduct(p) {
+  S.product = p; document.body.dataset.product = p;
+  $$(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === p));
+  $("#v-payi").classList.toggle("on", p === "payi"); $("#v-palm").classList.toggle("on", p === "palmpay");
+  $("#brandname").innerHTML = p === "payi" ? "Pay<i>I</i>" : "Palm<i>Pay</i>";
+  $("#brandsub").textContent = p === "payi" ? "paid by AI" : "by PayI · your palm, nobody keeps it";
+  $("#orbsub").textContent = p === "payi" ? "Say “Jarvis, send Alex 20 dirhams”" : "Walk in, then put your palm on the reader";
+  renderSugg(); if (p === "palmpay") drawPlan();
+}
+$$(".seg button").forEach(b => b.onclick = () => setProduct(b.dataset.p));
+
+// ── state rendering ──
+async function refresh() {
+  S.state = await api("/api/state");
+  const st = S.state;
+  countTo($("#bal"), st.balances.sagar);
+  $("#balsub").innerHTML = `Balance is the sum of ledger entries · book ${st.invariant.balanced ? `<span style="color:var(--ok)">balanced ✓</span>` : `<span style="color:var(--red)">unbalanced</span>`}`;
+  const vid = st.voiceid || {}; $("#c-voice").className = "chip" + (vid.enrolled ? " on" : " warn");
+  $("#c-voice b").textContent = vid.enrolled ? `on · ≥ ${vid.threshold}` : "not set";
+  $("#c-key b").textContent = st.device.backend === "tpm-sealed" ? "TPM 2.0" : "software";
+  const w = st.world;
+  $("#c-palm").className = "chip" + (w.enrolled ? " on" : "");
+  $("#c-palm b").textContent = w.enrolled ? `enrolled · ${w.enrol_mode}` : "not enrolled";
+  const peer = st.mandates.find(m => m.purpose === "peer_transfer");
+  if (peer) $("#tiers").innerHTML = `
+    <div class="tier"><span class="pill green" style="width:max-content">green</span><b>≤ ${peer.green_cap} AED</b><span>voice only</span></div>
+    <div class="tier"><span class="pill amber" style="width:max-content">amber</span><b>≤ ${peer.limits.per_txn} AED</b><span>voice + palm</span></div>
+    <div class="tier"><span class="pill red" style="width:max-content">red</span><b>&gt; ${peer.limits.per_txn} AED</b><span>refused</span></div>`;
+  $("#mandates").innerHTML = st.mandates.map(m => {
+    const pct = Math.min(100, m.spent_today / m.limits.per_day * 100);
+    const palmM = m.purpose === "palm_checkout";
+    return `<div class="panel mandate rise">
+      <div class="top"><div class="avatar" style="color:${palmM ? "var(--palm)" : "var(--payi)"}">${palmM ? "FC" : "VD"}</div>
+        <div style="flex:1;min-width:0"><h3>${esc(m.payee)}</h3><div class="sub">${esc(m.mandate_id)} · ${palmM ? "palm checkout" : "people"}</div></div>
+        <span class="pill ${palmM ? "palm" : "payi"}">${palmM ? "PalmPay" : "PayI"}</span></div>
+      <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span class="muted">Spent today</span><span class="mono">${fmt(m.spent_today)} / ${fmt(m.limits.per_day, 0)} AED</span></div>
+        <div class="bar"><i style="width:${pct}%;background:${palmM ? "var(--palm)" : "var(--payi)"}"></i></div></div>
+      <div class="limits"><div><b>${m.limits.per_txn}</b><span>per payment</span></div><div><b>${m.green_cap}</b><span>${palmM ? "hands-free" : "voice only"}</span></div><div><b>${m.limits.per_month}</b><span>per month</span></div></div>
+      <div class="sigs">${check(!!m.payer_sig, "signed by you")}${check(!!m.payee_sig, `signed by ${esc(m.payee.split(" ")[0])}`)}</div>
+    </div>`;
+  }).join("");
+  const feed = st.feed.filter(f => f.from_name || f.amount);
+  $("#activity").innerHTML = feed.length ? feed.map(f => {
+    const palmF = f.to_agent === "agt_falcon";
+    return `<div class="act rise"><div class="ic" style="color:${palmF ? "var(--palm)" : "var(--voice)"}">${palmF ? ICON.palm : ICON.wave}</div>
+      <div><b>${palmF ? "Falcon Café" : "Alex Morgan"}</b><small>${palmF ? "PalmPay · till-1" : "VoicePay"} · ${esc((f.at || "").slice(11, 19))} UTC · ${esc(f.tier || "")}</small></div>
+      <div class="a num">−${fmt(f.amount)}</div></div>`;
+  }).join("") : `<div class="empty">No payments yet. Try “Send Alex 20 dirhams”.</div>`;
+  S.world = w; renderPalm();
+}
+
+// ── command handling (VoicePay in both products) ──
+const YES = /^(yes|yeah|yep|confirm|go ahead|do it|send it|sure|ok(ay)?|pay( it)?)\b/i, NO = /^(no|nope|cancel|stop|don'?t)\b/i;
+async function handle(text) {
+  text = text.trim(); if (!text || S.busy) return;
+  add("me", esc(text));
+  const t = text.toLowerCase().replace(/^(hey |ok )?jarvis[, ]*/, "");
+  if (S.pending && NO.test(t)) return cancel(S.pending);
+  if (S.product === "palmpay" || /pay here|walk in|walk out|go to the till/.test(t)) {
+    if (/pay (here|now)|check ?out|pay at the till/.test(t)) { if (S.product !== "palmpay") setProduct("palmpay"); return startPay(true); }
+    if (/walk(ing)? in|go in|enter/.test(t)) { if (S.product !== "palmpay") setProduct("palmpay"); return walk("in"); }
+    if (/(go|walk) to the (till|counter)|till/.test(t)) { if (S.product !== "palmpay") setProduct("palmpay"); return walk("till"); }
+    if (/walk(ing)? out|leave/.test(t)) return walk("out");
+    if (/walk past/.test(t)) return walk("past");
+    if (/enrol|enroll|register/.test(t)) return openCam("enrol");
+  }
+  S.busy = true; setOrb("thinking");
+  try {
+    const r = await api("/api/voice/plan", {text, product: S.product});
+    if (r.kind === "readback") {
+      S.pending = r.flow;
+      const c = add("card", `
+        <div class="row"><span class="label">VoicePay · nothing signed yet</span><span class="pill ${r.tier}">${r.tier}</span></div>
+        <div class="amt num">${fmt(r.amount)}<small>AED</small></div>
+        <div class="kv"><span>To</span><span>${esc(r.payee)}</span><span>Wallet</span><span>${esc(r.wallet)}</span><span>Mandate</span><span>${esc(r.mandate)}</span></div>
+        ${r.tier === "red" ? `<div class="check n">${ICON.x}Over your per-payment limit</div>` : r.approval === "fingerprint" ?
+          `<div class="touch"><div class="fp">${ICON.finger}</div><div><b>Touch the fingerprint sensor</b><small>Approves exactly this payment · <span class="cd">25</span> s</small></div></div>` :
+          `<div class="touch paying"><div class="fp">${ICON.key}</div><div><b>Signing with your device key…</b><small>Exact payee · both-signed mandate · limits · single-use nonce</small></div></div>`}
+        <div class="acts"><button class="btn ghost" data-a="no">Cancel</button></div>`);
+      c.dataset.flow = r.flow;
+      c.querySelector('[data-a=no]').onclick = () => { add("me", "Cancel"); cancel(r.flow); };
+      if (r.tier === "red") { c.classList.add("bad"); S.pending = null; setOrb("error"); jarvis(r.say); return; }
+      if (r.approval === "fingerprint") setOrb("stepup", "Touch the fingerprint sensor"); else setOrb("thinking", "Paying…");
+      jarvis(r.say);
+      approve(r.flow, c);
+    } else if (r.ok) { setOrb("idle"); jarvis(r.say); }
+    else { setOrb("error"); Sound.no(); orb.pulse(getComputedStyle(document.body).getPropertyValue("--red")); jarvis(r.say); }
+  } finally { S.busy = false; }
+}
+async function approve(flow, c) {
+  let left = 25; const cd = c.querySelector(".cd");
+  const tick = setInterval(() => { left = Math.max(0, left - 1); if (cd) cd.textContent = left; }, 1000);
+  S.busy = true;
+  try {
+    const r = await api("/api/voice/approve", {flow});
+    clearInterval(tick); S.pending = null;
+    c.querySelector(".touch")?.classList.add(r.ok ? "ok" : "no");
+    c.querySelector('[data-a=no]').disabled = true;
+    if (r.state === "stepup") { finish(c, {ok: false, say: r.say}); return; }
+    finish(c, r);
+  } finally { clearInterval(tick); S.busy = false; }
+}
+function cardFor(flow) { return $$("#convo .card").reverse().find(c => c.dataset.flow === flow); }
+async function confirm(flow) {
+  S.pending = null; S.busy = true; setOrb("thinking", "Signing with the device key…");
+  const c = cardFor(flow); c?.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    const r = await api("/api/voice/confirm", {flow});
+    if (r.state === "stepup") {
+      S.stepflow = flow; c?.classList.add("warn"); setOrb("stepup", "Show your palm to approve");
+      const s = add("card", `<div class="row"><span class="label">Second channel</span><span class="pill amber">amber</span></div>
+        <div style="font-size:13px">Above your voice-only limit. Approve with your palm — matched 1:1 on your phone, bound to this exact payment.</div>
+        <div class="acts"><button class="btn primary">Confirm with palm</button></div>`);
+      s.classList.add("warn"); s.dataset.flow = flow; s.querySelector("button").onclick = () => openCam("stepup");
+      jarvis(r.say);
+      return;
+    }
+    finish(c, r);
+  } finally { S.busy = false; }
+}
+function finish(c, r) {
+  if (r.ok && (r.state === "captured" || r.transfer_id)) {
+    c?.querySelector(".touch b") && (c.querySelector(".touch b").textContent = c.querySelector(".touch.paying") ? "Signed and sent" : "Approved by fingerprint");
+    c?.classList.add("done"); Sound.ok(); orb.pulse(); setOrb("idle", "Done · watch it land on Alex's screen");
+    add("card", `<div class="row"><span class="check y">${ICON.check}Paid</span><span class="mono dim" style="font-size:11px">${esc(r.transfer_id || "")}</span></div>`).classList.add("done");
+  } else { c?.classList.add("bad"); Sound.no(); setOrb("error"); }
+  jarvis(r.say); refresh();
+}
+async function cancel(flow) {
+  S.pending = null; cardFor(flow)?.querySelectorAll("button").forEach(b => b.disabled = true);
+  const r = await api("/api/voice/cancel", {flow}); setOrb("idle"); jarvis(r.say);
+}
+
+// ── voice input: record here, transcribe on the laptop (works in Firefox, Chrome, Safari) ──
+async function listen() {
+  if (Ears.on) { Ears.stop(); return; }
+  Voice.stop(false);
+  try {
+    $("#mic").classList.add("on"); setOrb("listening", "Listening… stop talking to send");
+    await Ears.start({
+      onDone: async wav => {
+        $("#mic").classList.remove("on"); setOrb("thinking", "Transcribing on this laptop…");
+        const r = await fetch("/api/stt", {method: "POST", headers: {"Content-Type": "audio/wav"}, body: wav}).then(r => r.json()).catch(() => ({}));
+        if (r.speaker && r.speaker.enrolled && !r.speaker.ok) {
+          setOrb("error", `Voice not recognised · ${r.speaker.score} < ${r.speaker.threshold}`); Sound.no();
+          orb.pulse(getComputedStyle(document.body).getPropertyValue("--red"));
+          add("sys", `Voice ID: not Sagar (similarity ${r.speaker.score}, needs ${r.speaker.threshold}) — ignored`);
+          jarvis("I don't recognise your voice. Only Sagar can pay from here."); return;
+        }
+        const t = (r.text || "").replace(/^[\s.,]+|[\s.,]+$/g, "");
+        if (!t) { setOrb("idle", "I didn't catch that — try again"); return; }
+        setOrb("idle"); S.voiceTurn = true; handle(t);
+      },
+    });
+  } catch (e) { $("#mic").classList.remove("on"); setOrb("idle"); toast("Microphone blocked — allow it in the address bar"); }
+}
+const VLINES = ["Jarvis, send Alex twenty dirhams.", "What is my balance today?", "Pay here at Falcon Café, please."];
+function openVoiceId() {
+  $("#vlines").innerHTML = VLINES.map((l, i) => `<div class="step ${i ? "" : "on"}"><i>${i + 1}</i>“${esc(l)}”</div>`).join("");
+  $("#vstart").disabled = false; $("#vstart").textContent = S.state?.voiceid?.enrolled ? "Re-enrol" : "Start";
+  $("#vmodal").classList.add("on");
+}
+$("#c-voice").onclick = openVoiceId;
+$("#vcancel").onclick = () => { if (Ears.on) Ears.stop(); $("#vmodal").classList.remove("on"); };
+const b64 = blob => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result.split(",")[1]); f.readAsDataURL(blob); });
+$("#vstart").onclick = async () => {
+  $("#vstart").disabled = true; Voice.stop(false); const clips = [];
+  for (let i = 0; i < VLINES.length; i++) {
+    $$("#vlines .step").forEach((el, j) => el.className = "step " + (j < i ? "done" : j === i ? "on" : ""));
+    const wav = await new Promise(res => Ears.start({onLevel: v => $("#vlevel").style.width = `${v * 100}%`, onDone: res, maxMs: 7000}).catch(() => res(null)));
+    if (!wav) { toast("Microphone blocked"); $("#vstart").disabled = false; return; }
+    clips.push(await b64(wav));
+  }
+  $$("#vlines .step").forEach(el => el.className = "step done"); $("#vlevel").style.width = "0";
+  const r = await api("/api/voiceid/enrol", {clips});
+  $("#vmodal").classList.remove("on"); jarvis(r.say); if (r.ok) { Sound.ok(); orb.pulse(); } refresh();
+};
+$("#mic").onclick = listen;
+document.addEventListener("keydown", e => { if (e.code === "Space" && document.activeElement.tagName !== "INPUT" && !$("#modal").classList.contains("on")) { e.preventDefault(); listen(); } });
+$("#form").onsubmit = e => { e.preventDefault(); const t = $("#text").value; $("#text").value = ""; S.voiceTurn = false; handle(t); };
+
+// ── store plan ──
+const SC = 40, PAD = 30, YMIN = -6, XMAX = 8.4, XMIN = -3.4;
+const P = (x, y) => [PAD + (y - YMIN) * SC, PAD + (XMAX - x) * SC];
+const M = (px, py) => [XMAX - (py - PAD) / SC, (px - PAD) / SC + YMIN];
+let trail = [], buf = [];
+function drawPlan() {
+  const svg = $("#svg"); const w = S.world || {pos: [-2.2, -3.2], till: [6, 2.6], queue_b: [4.95, 2.75]};
+  const [cx0, cy0] = P(0, -6), [cx1] = P(0, 6), [, corY1] = P(XMIN, 0), [, stY0] = P(XMAX, 0);
+  const [tx, ty] = P(...w.till);
+  const r12 = 1.2 * SC, a = 35 * Math.PI / 180;
+  const sx1 = tx - Math.sin(a) * r12, sy1 = ty + Math.cos(a) * r12, sx2 = tx + Math.sin(a) * r12;
+  const post = y => { const [x1, y1] = P(0.22, y - 0.12); return `<rect x="${x1}" y="${y1}" width="${0.24 * SC}" height="${0.44 * SC}" rx="3" fill="var(--palm)"/>`; };
+  const shelf = (x0, y0, x1, y1, label) => { const [a1, b1] = P(x1, y0), [a2, b2] = P(x0, y1);
+    return `<rect x="${a1}" y="${b1}" width="${a2 - a1}" height="${b2 - b1}" rx="6" fill="#0f1524" stroke="var(--line2)"/>
+      <text x="${(a1 + a2) / 2}" y="${(b1 + b2) / 2 + 4}" text-anchor="middle" class="pl">${label}</text>`; };
+  const table = (x, y) => { const [a1, b1] = P(x, y); return `<circle cx="${a1}" cy="${b1}" r="${0.42 * SC}" fill="#0f1524" stroke="var(--line2)"/>`; };
+  svg.innerHTML = `
+  <defs>
+    <pattern id="grid" width="${SC / 2}" height="${SC / 2}" patternUnits="userSpaceOnUse"><path d="M ${SC / 2} 0 L 0 0 0 ${SC / 2}" fill="none" stroke="#131b2a" stroke-width="1"/></pattern>
+    <pattern id="tiles" width="${SC}" height="${SC}" patternUnits="userSpaceOnUse"><rect width="${SC}" height="${SC}" fill="#080b12"/><path d="M ${SC} 0 L 0 0 0 ${SC}" fill="none" stroke="#10161f"/></pattern>
+    <radialGradient id="sect"><stop offset="0" stop-color="var(--palm)" stop-opacity=".28"/><stop offset="1" stop-color="var(--palm)" stop-opacity=".03"/></radialGradient>
+    <style>.pl{font:500 10px var(--mono);letter-spacing:.12em;fill:var(--dim);text-transform:uppercase}.pt{font:600 11px var(--ui);fill:var(--ink)}</style>
+  </defs>
+  <rect x="${cx0}" y="${cy0}" width="${cx1 - cx0}" height="${corY1 - cy0}" fill="url(#tiles)"/>
+  <text x="${cx0 + 12}" y="${corY1 - 12}" class="pl">Mall corridor</text>
+  <rect x="${cx0}" y="${stY0}" width="${cx1 - cx0}" height="${cy0 - stY0}" fill="#0a0e17"/>
+  <rect x="${cx0}" y="${stY0}" width="${cx1 - cx0}" height="${cy0 - stY0}" fill="url(#grid)"/>
+  <rect x="${cx0}" y="${stY0}" width="${cx1 - cx0}" height="${cy0 - stY0}" fill="none" stroke="var(--line2)" stroke-width="2" rx="4"/>
+  <text x="${cx0 + 12}" y="${stY0 + 20}" class="pl">Falcon Café</text>
+  ${shelf(1.6, -5.4, 7.4, -4.6, "Pastry")}${shelf(7.3, -3.6, 7.9, 0.4, "")}
+  ${table(2.2, -2.4)}${table(3.9, -2.4)}${table(4.2, 4.6)}${table(2.4, 4.4)}
+  <g>${(() => { const [a1, b1] = P(6.9, 1.2), [a2, b2] = P(6.15, 4.4); return `<rect x="${a1}" y="${b1}" width="${a2 - a1}" height="${b2 - b1}" rx="6" fill="#0f1a1a" stroke="color-mix(in oklab,var(--palm) 40%,var(--line2))"/><text x="${(a1 + a2) / 2}" y="${b1 - 8}" text-anchor="middle" class="pl">Counter</text>`; })()}</g>
+  <path d="M ${tx} ${ty} L ${sx1} ${sy1} A ${r12} ${r12} 0 0 0 ${sx2} ${sy1} Z" fill="url(#sect)" stroke="color-mix(in oklab,var(--palm) 40%,transparent)" stroke-dasharray="3 4"/>
+  <circle cx="${tx}" cy="${ty}" r="6" fill="var(--palm)"/><circle cx="${tx}" cy="${ty}" r="11" fill="none" stroke="var(--palm)" opacity=".5"><animate attributeName="r" values="7;16;7" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;0;.6" dur="2.4s" repeatCount="indefinite"/></circle>
+  <text x="${tx + 14}" y="${ty + 4}" class="pt">till-1</text>
+  <line x1="${cx0}" y1="${cy0}" x2="${P(0, -0.9)[0]}" y2="${cy0}" stroke="var(--ink)" stroke-opacity=".55" stroke-width="3"/>
+  <line x1="${P(0, 0.9)[0]}" y1="${cy0}" x2="${cx1}" y2="${cy0}" stroke="var(--ink)" stroke-opacity=".55" stroke-width="3"/>
+  ${post(-0.9)}${post(0.9)}
+  ${[-0.9, 0.9].map(y => { const [px, py] = P(0, y); return `<circle cx="${px}" cy="${py}" r="10" fill="none" stroke="var(--palm)"><animate attributeName="r" values="6;30;6" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".7;0;.7" dur="3s" repeatCount="indefinite"/></circle>`; }).join("")}
+  <text x="${P(0, 0)[0]}" y="${cy0 + 26}" text-anchor="middle" class="pl">Entrance · gate-1 (UWB)</text>
+  <polyline id="trail" fill="none" stroke="var(--accent)" stroke-opacity=".45" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/>
+  <g id="bgrp"></g>
+  <g id="me" style="cursor:grab"></g>`;
+  placeB(); placeMe();
+}
+function placeMe() {
+  const w = S.world; if (!w || !$("#me")) return; const [x, y] = P(...w.pos); const pass = !!w.pass;
+  $("#me").innerHTML = `<circle cx="${x}" cy="${y}" r="22" fill="var(--accent)" opacity=".08"/>
+    <circle cx="${x}" cy="${y}" r="13" fill="#0b111c" stroke="${pass ? "var(--palm)" : "var(--ink)"}" stroke-width="2"/>
+    <text x="${x}" y="${y + 4}" text-anchor="middle" style="font:700 11px var(--ui);fill:var(--ink)">S</text>
+    <rect x="${x + 10}" y="${y - 20}" width="9" height="14" rx="2" fill="${pass ? "var(--palm)" : "var(--dim)"}"/>
+    <text x="${x}" y="${y + 32}" text-anchor="middle" class="pt">You</text>`;
+  $("#trail").setAttribute("points", trail.map(p => P(...p).join(",")).join(" "));
+}
+function placeB() {
+  const w = S.world; if (!w || !$("#bgrp")) return; const g = $("#bgrp");
+  if (!w.b_on) { g.innerHTML = ""; return; }
+  const [x, y] = P(...w.queue_b);
+  g.innerHTML = `<circle cx="${x}" cy="${y}" r="13" fill="#0b111c" stroke="var(--muted)" stroke-width="2" stroke-dasharray="3 3"/>
+    <text x="${x}" y="${y + 4}" text-anchor="middle" style="font:700 11px var(--ui);fill:var(--muted)">B</text>
+    <text x="${x - 20}" y="${y + 4}" text-anchor="end" class="pl">Shopper B</text>`;
+}
+function clampMove(from, to) {
+  let [x, y] = to; x = Math.max(XMIN + .2, Math.min(XMAX - .2, x)); y = Math.max(-5.8, Math.min(5.8, y));
+  if ((from[0] < 0) !== (x < 0) && Math.abs(y) > .8) x = from[0] < 0 ? -.2 : .2;          // walls except the gate
+  if (x > 6.05 && x < 7 && y > 1.1 && y < 4.5) x = 6.05;                                      // counter
+  return [x, y];
+}
+function svgPoint(e) { const svg = $("#svg"), pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const q = pt.matrixTransform(svg.getScreenCTM().inverse()); return M(q.x, q.y); }
+let dragging = false, lastSent = 0;
+$("#svg").addEventListener("pointerdown", e => { if (!e.target.closest("#me")) return; dragging = true; $("#svg").setPointerCapture(e.pointerId); $("#me").style.cursor = "grabbing"; });
+$("#svg").addEventListener("pointermove", e => {
+  if (!dragging) return; const p = clampMove(S.world.pos, svgPoint(e)); S.world.pos = p;
+  const now = performance.now(); if (now - lastSent > 30) { buf.push(p); trail.push(p); trail = trail.slice(-120); lastSent = now; }
+  placeMe(); renderRange();
+});
+$("#svg").addEventListener("pointerup", () => { if (!dragging) return; dragging = false; $("#me").style.cursor = "grab"; sendMove(); });
+async function sendMove() {
+  if (!buf.length) return; const path = buf.slice(-400);
+  const r = await api("/api/palm/move", {path});
+  if (r.event) { buf = []; if (r.say) jarvis(r.say); if (r.event === "nopass") { Sound.no(); jarvis("You walked past the entrance, so your phone made no pass. The store learned nothing."); } else Sound.ok(); }
+  else buf = buf.slice(-200);
+  S.world = r.world; renderPalm(); refreshSoon();
+}
+function walkTo(points, speed = 2.2) {
+  return new Promise(res => {
+    const segs = []; let from = S.world.pos;
+    for (const p of points) { segs.push([from, p]); from = p; }
+    const lens = segs.map(([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1])); const total = lens.reduce((a, b) => a + b, 0) || 1e-6;
+    const t0 = performance.now(); let last = 0;
+    const step = now => {
+      const d = Math.min(total, (now - t0) / 1000 * speed); let k = d, i = 0;
+      while (i < segs.length - 1 && k > lens[i]) { k -= lens[i]; i++; }
+      const [a, b] = segs[i], f = lens[i] ? Math.min(1, k / lens[i]) : 1;
+      const p = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]; S.world.pos = p;
+      if (now - last > 40) { buf.push(p); trail.push(p); trail = trail.slice(-120); last = now; }
+      placeMe(); renderRange();
+      if (d < total) requestAnimationFrame(step); else res();
+    };
+    requestAnimationFrame(step);
+  });
+}
+async function walk(kind) {
+  if (S.product !== "palmpay") setProduct("palmpay");
+  if (!S.world) await refresh();
+  const inside = S.world.pos[0] > 0;
+  if (kind === "in") { if (inside) return jarvis("You're already inside."); await walkTo([[-1.4, S.world.pos[1] > 0 ? 1.4 : -1.4], [-1.2, 0.05], [1.9, 0.1]]); }
+  if (kind === "till") { if (!inside) { await walkTo([[-1.2, 0.05], [1.9, 0.1]]); await sendMove(); } await walkTo([[3.6, 1.6], [5.4, 2.62]]); }
+  if (kind === "past") { if (inside) return jarvis("Walk out first."); await walkTo([[-0.95, -4.6]], 3.2); buf = []; await walkTo([[-0.95, 4.6]], 1.6); }
+  if (kind === "out") { if (!inside) return jarvis("You're already outside."); await walkTo([[2.2, 0.3], [1.2, 0.05], [-1.6, 0.0], [-2.3, -2.6]]); }
+  await sendMove();
+}
+$$("[data-walk]").forEach(b => b.onclick = () => walk(b.dataset.walk));
+$("#queue").onclick = async () => {
+  const on = $("#queue").getAttribute("aria-checked") !== "true";
+  const r = await api("/api/palm/queue", {on}); S.world = r.world; $("#queue").setAttribute("aria-checked", on); placeB();
+  if (on) jarvis("Shopper B has checked in and is standing behind you.");
+};
+
+// ── PalmPay side panel ──
+function renderMenu() {
+  $("#menu").innerHTML = MENU.map(([n, p]) => `<button aria-pressed="${S.items.has(n)}" data-n="${esc(n)}"><b>${esc(n)}</b><span>${fmt(p)}</span></button>`).join("");
+  $$("#menu button").forEach(b => b.onclick = () => { S.items.has(b.dataset.n) ? S.items.delete(b.dataset.n) : S.items.add(b.dataset.n); renderMenu(); });
+  $("#total").textContent = fmt(amount());
+}
+const amount = () => MENU.filter(([n]) => S.items.has(n)).reduce((a, [, p]) => a + p, 0);
+function renderRange() {
+  const w = S.world; if (!w) return;
+  const d = Math.hypot(w.pos[0] - w.till[0], w.pos[1] - w.till[1]);
+  const vx = w.pos[0] - w.till[0], vy = w.pos[1] - w.till[1]; const ang = Math.acos(Math.max(-1, Math.min(1, -vx / (d || 1e-9)))) * 180 / Math.PI;
+  const ok = d <= 1.2 && ang <= 35;
+  $("#range").innerHTML = `<span>till-1 · <span class="mono">${d.toFixed(2)} m</span> · <span class="mono">${ang.toFixed(0)}°</span></span>${ok ? `<span class="check y">${ICON.check}in range</span>` : `<span class="dim">≤ 1.2 m, ±35°</span>`}`;
+}
+function renderPalm() {
+  const w = S.world; if (!w) return;
+  const p = w.pass;
+  $("#passring").className = "ring" + (p ? " on" : ""); $("#passring").innerHTML = p ? ICON.check : ICON.palm;
+  $("#passh").textContent = p ? "Checked in · Falcon Café" : "Not checked in";
+  $("#passp").textContent = p ? "The store sees only this visit's pseudonym." : "Walk in through the gate — your phone checks the store and makes a pass.";
+  $("#passkv").innerHTML = p ? `<span>Visit</span><span>${esc(p.visit_id)}</span><span>Visit key</span><span>${esc(p.visit_pub.slice(0, 20))}…</span><span>Hands-free left</span><span>${fmt(p.cap - p.spent)} of ${fmt(p.cap, 0)} AED</span>` : "";
+  $("#capbar").hidden = !p; if (p) $("#capbar i").style.width = `${Math.min(100, p.spent / p.cap * 100)}%`;
+  $("#palmline").textContent = w.enrolled ? `on this phone · tolerance ${w.tolerance}` : "not enrolled";
+  $("#enrolbtn").textContent = w.enrolled ? "Re-enrol" : "Enrol palm";
+  $("#paybtn").innerHTML = `${ICON.palm} Place palm on reader`;
+  if (!dragging) placeMe(); placeB(); renderRange();
+}
+$("#enrolbtn").onclick = () => openCam("enrol");
+$("#paybtn").onclick = () => startPay(false);
+function startPay(explicit) {
+  if (!S.world?.enrolled) { jarvis("First, enrol your palm on your phone."); return openCam("enrol"); }
+  if (!amount()) return jarvis("Pick something from the counter first.");
+  S.explicit = explicit; openCam("pay");
+}
+
+// ── camera + hand tracking ──
+let HL = null, stream_ = null, camMode = "", frames = [], moved = [], lastF = 0, phase = "", camBusy = false;
+async function loadHL() {
+  if (HL) return HL;
+  const {FilesetResolver, HandLandmarker} = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+  const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  HL = await HandLandmarker.createFromOptions(vision, {baseOptions: {modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU"}, runningMode: "VIDEO", numHands: 1});
+  return HL;
+}
+function openCam(mode) {
+  camMode = mode; frames = []; moved = []; phase = mode === "enrol" ? "steady" : "scan"; camBusy = false;
+  const T = {enrol: ["Palm · enrolment", "Enrol your palm", "Hold your open palm to the camera. It's measured on your phone and never uploaded."],
+             pay: ["PalmPay · till-1", `Pay ${fmt(amount())} AED`, "Show your open palm to the reader. Your phone releases your template to this till only, for one comparison."],
+             stepup: ["PayI · second channel", "Approve with your palm", "Matched 1:1 against the template on your phone. The approval is bound to this exact payment."]}[mode];
+  $("#camlabel").textContent = T[0]; $("#camtitle").textContent = T[1]; $("#camtext").textContent = T[2];
+  const steps = mode === "enrol" ? ["Hold your palm steady", "Tilt and move it slightly", "Template stored on your phone"] : ["Show your open palm", "Match 1:1", mode === "pay" ? "Paid" : "Approved"];
+  $("#steps").innerHTML = steps.map((s, i) => `<div class="step ${i ? "" : "on"}"><i>${i + 1}</i>${s}</div>`).join("");
+  $("#prog").style.width = "0";
+  const demoOwner = S.world?.enrol_mode === "demo hand" || mode === "enrol";
+  $("#camacts").innerHTML = (demoOwner ? `<button class="btn" data-d="owner">${mode === "enrol" ? "Use demo hand" : "Demo hand (yours)"}</button>` : "") +
+    (mode !== "enrol" ? `<button class="btn" data-d="stranger">Try a stranger's hand</button>` : "") + `<button class="btn ghost" data-d="cancel">Cancel</button>`;
+  $("#camnote").textContent = mode === "enrol" ? "Demo hand = a synthetic hand, for rehearsals without a camera." : "Stranger = a synthetic hand that is not yours — watch it get refused.";
+  $$("#camacts button").forEach(b => b.onclick = () => b.dataset.d === "cancel" ? closeCam() : submitCam(b.dataset.d));
+  $("#modal").classList.add("on"); $("#feedmsg").textContent = "Starting camera…";
+  startCam();
+}
+async function startCam() {
+  try {
+    stream_ = await navigator.mediaDevices.getUserMedia({video: {width: 960, height: 720, facingMode: "user"}});
+    const v = $("#video"); v.srcObject = stream_; await v.play();
+    $("#feedmsg").textContent = "Loading hand tracking…";
+    await loadHL(); $("#feedmsg").textContent = "Show your open palm";
+    const c = $("#overlay"), ctx = c.getContext("2d");
+    const loop = () => {
+      if (!stream_) return;
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      const res = HL.detectForVideo(v, performance.now());
+      ctx.clearRect(0, 0, c.width, c.height);
+      if (res.landmarks?.length) { drawHand(ctx, res.landmarks[0], c.width, c.height); onHand(res.landmarks[0], res.worldLandmarks[0]); }
+      else $("#feedmsg").textContent = phase === "moved" ? "Keep your palm in view — move it slightly" : "Show your open palm";
+      requestAnimationFrame(loop);
+    };
+    loop();
+  } catch (e) { $("#feedmsg").textContent = "Camera unavailable — use the demo buttons"; }
+}
+function closeCam() { $("#modal").classList.remove("on"); stream_?.getTracks().forEach(t => t.stop()); stream_ = null; }
+function drawHand(ctx, lm, w, h) {
+  const B = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  const acc = getComputedStyle(document.body).getPropertyValue(camMode === "stepup" ? "--amber" : "--accent");
+  ctx.strokeStyle = acc; ctx.lineWidth = 2.5; ctx.shadowColor = acc; ctx.shadowBlur = 12;
+  for (const [a, b] of B) { ctx.beginPath(); ctx.moveTo(lm[a].x * w, lm[a].y * h); ctx.lineTo(lm[b].x * w, lm[b].y * h); ctx.stroke(); }
+  ctx.fillStyle = "#e8edf6"; for (const p of lm) { ctx.beginPath(); ctx.arc(p.x * w, p.y * h, 3, 0, 7); ctx.fill(); }
+  ctx.shadowBlur = 0;
+}
+function openness(lm) {
+  const d = (a, b) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y);
+  return [8, 12, 16, 20].reduce((s, t, i) => s + d(t, 0) / d([5, 9, 13, 17][i], 0), 0) / 4;
+}
+function onHand(lm, world) {
+  if (camBusy) return;
+  const open = openness(lm) > 1.55, now = performance.now();
+  if (!open) { $("#feedmsg").textContent = "Open your hand fully"; return; }
+  const arr = world.map(p => [p.x, p.y, p.z]);
+  if (camMode === "enrol") {
+    if (phase === "steady" && now - lastF > 90) { frames.push(arr); lastF = now; $("#feedmsg").textContent = `Hold still · ${frames.length}/12`; }
+    if (phase === "steady" && frames.length >= 12) { phase = "moved"; stepOn(1); Sound.tick(); }
+    if (phase === "moved" && now - lastF > 200) { moved.push(arr); lastF = now; $("#feedmsg").textContent = `Tilt and move slightly · ${moved.length}/6`; }
+    $("#prog").style.width = `${(frames.length + moved.length) / 18 * 100}%`;
+    if (phase === "moved" && moved.length >= 6) submitCam("");
+  } else {
+    if (now - lastF > 110) { frames.push(arr); lastF = now; $("#feedmsg").textContent = `Reading · ${frames.length}/8`; }
+    $("#prog").style.width = `${frames.length / 8 * 100}%`;
+    if (frames.length >= 8) submitCam("");
+  }
+}
+function stepOn(i) { $$("#steps .step").forEach((s, j) => s.className = "step " + (j < i ? "done" : j === i ? "on" : "")); }
+async function submitCam(who) {
+  if (camBusy) return; camBusy = true; stepOn(camMode === "enrol" ? 2 : 1); $("#feedmsg").textContent = "Working…";
+  let r;
+  if (camMode === "enrol") {
+    r = await api("/api/palm/enrol", who === "owner" ? {demo: true} : {steady: frames, moved});
+    closeCam(); if (r.ok) { Sound.ok(); orb.pulse(); } jarvis(r.say); refresh(); return;
+  }
+  const payload = who ? {who} : {frames};
+  if (camMode === "stepup") {
+    closeCam(); setOrb("thinking", "Checking your palm…");
+    r = await api("/api/voice/stepup", {flow: S.stepflow, ...payload});
+    finish(cardFor(S.stepflow), r); return;
+  }
+  closeCam(); setOrb("thinking", "Releasing your palm to till-1 only…");
+  add("me", `${ICON.palm.replace("<svg", '<svg style="width:14px;height:14px;vertical-align:-2px"')} Palm on the reader · ${fmt(amount())} AED`);
+  r = await api("/api/palm/pay", {amount: amount(), items: [...S.items], explicit: !!S.explicit, ...payload});
+  S.explicit = false;
+  if (r.ok) { Sound.ok(); orb.pulse(); setOrb("idle", "Paid · look at Alex's screen");
+    add("card", `<div class="row"><span class="check y">${ICON.check}Paid with your palm</span><span class="mono dim" style="font-size:11px">${esc(r.transfer_id || "")}</span></div><div class="amt num">${fmt(amount())}<small>AED</small></div><div class="kv"><span>At</span><span>Falcon Café · till-1</span><span>Card</span><span>none</span><span>Phone</span><span>in your pocket</span></div>`).classList.add("done");
+  } else { Sound.no(); setOrb("error"); }
+  jarvis(r.say); refresh();
+}
+
+// ── reset + live updates ──
+$("#reset").onclick = async () => { await api("/api/reset", {}); $("#convo").innerHTML = ""; trail = []; buf = []; S.pending = null;
+  $("#queue").setAttribute("aria-checked", "false"); await refresh(); drawPlan(); add("sys", "Demo reset · fresh ledger"); };
+let rs = null; const refreshSoon = () => { clearTimeout(rs); rs = setTimeout(refresh, 250); };
+stream(e => { if (["wallet.credited", "pass.issue", "pass.close", "system.reset", "palm.enrol"].includes(e.stage)) refreshSoon(); }, 0);
+
+// boot
+renderMenu(); renderSugg();
+refresh().then(() => { drawPlan(); add("sys", "PayI · Jarvis online · VoicePay ready");
+  jarvisGreeting(); });
+function jarvisGreeting() { add("j", "Good to see you, Sagar. Your device key is unlocked. You can pay people by voice, or walk into Falcon Café and pay with your palm."); }
+</script>
+</body>
+</html>

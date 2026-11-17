@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AMP Flow Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    color-scheme: dark;
+    --void:#06050c; --shell:#0d0b1a; --edge:#1c1830; --line:#2a2442;
+    --haze:#f4f0fd; --mute:#8b82a0;
+    --violet:#7c5cff; --cyan:#67e8f9; --magenta:#c026d3;
+    --good:#34d399; --amber:#fbbf24; --bad:#fb7185;
+    --display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--void);color:var(--haze);font-family:var(--display);
+       -webkit-font-smoothing:antialiased;overflow:hidden}
+  .field{position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(70vmax 70vmax at 25% 0%, rgba(124,92,255,.14), transparent 60%),
+               radial-gradient(60vmax 60vmax at 90% 100%, rgba(192,38,211,.10), transparent 60%)}
+
+  .stage{position:relative;z-index:1;height:100%;display:grid;
+         grid-template-rows:auto 1fr;gap:16px;padding:clamp(14px,2.4vh,26px) clamp(16px,3vw,34px)}
+  .rail{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+  .mark{font-weight:700;font-size:15px;letter-spacing:.14em;text-transform:uppercase;
+        margin-right:auto;display:flex;align-items:center;gap:9px}
+  .mark b{color:var(--violet)} .mark span{color:var(--mute);font-weight:500;
+        letter-spacing:.2em;font-size:11px}
+  [hidden]{display:none!important}
+  .chip{font-family:var(--mono);font-size:11px;padding:6px 11px;border-radius:999px;
+        border:1px solid var(--edge);background:var(--shell);color:var(--mute);
+        display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .chip.live{color:var(--cyan);border-color:rgba(103,232,249,.38)}
+  .chip.demo{color:var(--violet);border-color:rgba(124,92,255,.42)}
+  .chip.warn{color:var(--amber,#ffb020);border-color:rgba(255,176,32,.4)}
+  .chip b{color:var(--haze);font-weight:500}
+
+  .body{display:grid;grid-template-columns:1fr minmax(300px,380px);gap:18px;min-height:0}
+  @media (max-width:1000px){ .body{grid-template-columns:1fr;grid-template-rows:1fr auto} }
+
+  .canvas{position:relative;border:1px solid var(--edge);border-radius:16px;
+          background:linear-gradient(180deg,rgba(13,11,26,.7),rgba(6,5,12,.4));overflow:hidden}
+  svg#graph{width:100%;height:100%;display:block}
+
+  .node rect{fill:var(--shell);stroke:var(--line);stroke-width:1.25}
+  .node.hot rect{stroke:var(--violet);stroke-width:2;filter:drop-shadow(0 0 14px rgba(124,92,255,.5))}
+  .node .nm{font:600 15px var(--display);fill:var(--haze)}
+  .node .sub{font:400 11px var(--mono);fill:var(--mute)}
+  .node .bal{font:500 15px var(--mono);fill:var(--good)}
+  .edge{stroke:var(--line);stroke-width:1.5;fill:none}
+  .edge.hot{stroke:var(--violet);stroke-width:2.5}
+  .edge.refused{stroke:var(--bad);stroke-width:2.5}
+  .elabel{font:500 10.5px var(--mono);fill:var(--mute);letter-spacing:.06em}
+
+  .title{position:absolute;left:20px;top:16px;pointer-events:none}
+  .title h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .title p{margin:3px 0 0;font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .verdict{position:absolute;right:20px;top:16px;text-align:right;pointer-events:none}
+  .verdict .v{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+  .verdict .v.green{color:var(--good)} .verdict .v.amber{color:var(--amber)}
+  .verdict .v.refused{color:var(--bad)}
+  .verdict .amt{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+
+  /* ── step timeline ── */
+  .panel{border:1px solid var(--edge);border-radius:16px;background:var(--shell);
+         display:grid;grid-template-rows:auto 1fr;min-height:0;overflow:hidden}
+  .panel h3{margin:0;padding:14px 16px 10px;font-size:12px;letter-spacing:.16em;
+            text-transform:uppercase;color:var(--mute);font-weight:500;
+            border-bottom:1px solid var(--edge)}
+  .steps{overflow-y:auto;padding:8px;display:grid;gap:6px;align-content:start;
+         scrollbar-width:thin;scrollbar-color:var(--edge) transparent}
+  .step{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;
+        padding:9px 11px;border-radius:10px;border:1px solid transparent;
+        animation:in .4s cubic-bezier(.2,.9,.2,1)}
+  @keyframes in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+  .step.on{background:rgba(124,92,255,.10);border-color:rgba(124,92,255,.32)}
+  .step.refused{background:rgba(251,113,133,.10);border-color:rgba(251,113,133,.36)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--violet);margin-top:5px}
+  .step.refused .dot{background:var(--bad)}
+  .lb{font-size:13.5px}
+  .dt{font-family:var(--mono);font-size:10.5px;color:var(--mute);margin-top:3px;
+      word-break:break-word}
+  .ms{font-family:var(--mono);font-size:10.5px;color:var(--mute);
+      font-variant-numeric:tabular-nums;white-space:nowrap}
+  .idle{color:var(--mute);font-size:13px;text-align:center;padding:26px 10px}
+
+  @media (prefers-reduced-motion:reduce){ .step{animation:none} }
+</style>
+</head>
+<body>
+<div class="field"></div>
+<div class="stage">
+  <header class="rail">
+    <div class="mark"><b>AMP</b> <span>flow monitor</span></div>
+    <div class="chip" id="c-link">stream <b id="v-link">connecting</b></div>
+    <div class="chip demo" id="c-demo" hidden>demo <b>replay — not real money</b></div>
+    <div class="chip">transfers <b id="v-count">0</b></div>
+  </header>
+
+  <div class="body">
+    <div class="canvas">
+      <div class="title">
+        <h2 id="v-title">Waiting for a transfer</h2>
+        <p id="v-sub">Say "Jarvis, send 20 dirhams to Alex" on laptop 1</p>
+      </div>
+      <div class="verdict">
+        <div class="v" id="v-tier"></div>
+        <div class="amt" id="v-amt"></div>
+      </div>
+      <svg id="graph" viewBox="0 0 900 520" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <aside class="panel">
+      <h3>Backend steps</h3>
+      <div class="steps" id="steps"><div class="idle" id="idle">No transfer in flight.</div></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const SVG = "http://www.w3.org/2000/svg";
+  const el = (n, a={}) => { const e = document.createElementNS(SVG, n);
+    for (const k in a) e.setAttribute(k, a[k]); return e; };
+
+  // Node geometry. Laid out as the architecture reads: A -> Monitor -> Ledger, payee below.
+  const NODES = {
+    agent_a: {x:60,  y:190, w:210, h:104, nm:"Agent A", sub:"laptop 1 · TPM key"},
+    monitor: {x:345, y:190, w:210, h:104, nm:"Monitor", sub:"session authority"},
+    ledger:  {x:630, y:190, w:210, h:104, nm:"Ledger",  sub:"double entry"},
+    agent_b: {x:630, y:380, w:210, h:104, nm:"Agent B", sub:"laptop 2 · wallet"},
+  };
+  const WALLET_OF = {agent_a:"wal_sagar_aed", agent_b:"wal_alex_aed"};
+  const g = $("graph");
+  const gEdges = el("g"), gNodes = el("g"), gPkts = el("g");
+  g.append(gEdges, gNodes, gPkts);
+
+  const anchor = (k, side) => { const n = NODES[k];
+    return side === "r" ? {x:n.x+n.w, y:n.y+n.h/2}
+         : side === "l" ? {x:n.x,     y:n.y+n.h/2}
+         : side === "b" ? {x:n.x+n.w/2, y:n.y+n.h}
+         : {x:n.x+n.w/2, y:n.y}; };
+
+  // Every ordered pair we ever animate, with the path it takes.
+  function pathFor(from, to){
+    if (from === to){                                   // self-check: a loop above the node
+      const n = NODES[from], cx = n.x + n.w/2;
+      return `M${cx-46} ${n.y} C ${cx-46} ${n.y-64}, ${cx+46} ${n.y-64}, ${cx+46} ${n.y}`;
+    }
+    if (from === "monitor" && to === "agent_b"){
+      const a = anchor("monitor","b"), b = anchor("agent_b","l");
+      return `M${a.x} ${a.y} C ${a.x} ${a.y+90}, ${b.x-90} ${b.y}, ${b.x} ${b.y}`;
+    }
+    if (from === "ledger" && to === "ledger"){ return pathFor("ledger","ledger"); }
+    const order = ["agent_a","monitor","ledger"];
+    const fi = order.indexOf(from), ti = order.indexOf(to);
+    if (fi >= 0 && ti >= 0){
+      const a = anchor(from, fi < ti ? "r" : "l"), b = anchor(to, fi < ti ? "l" : "r");
+      const dy = fi < ti ? 0 : 26;                      // return leg rides slightly lower
+      return `M${a.x} ${a.y+dy} L${b.x} ${b.y+dy}`;
+    }
+    const a = anchor(from,"r"), b = anchor(to,"l");
+    return `M${a.x} ${a.y} L${b.x} ${b.y}`;
+  }
+
+  const edges = {};
+  function edgeKey(f,t){ return f+">"+t; }
+  function ensureEdge(f,t){
+    const k = edgeKey(f,t);
+    if (edges[k]) return edges[k];
+    const p = el("path", {d: pathFor(f,t), class:"edge"});
+    gEdges.appendChild(p);
+    return (edges[k] = p);
+  }
+
+  function drawNodes(){
+    gNodes.textContent = "";
+    for (const k in NODES){
+      const n = NODES[k];
+      const grp = el("g", {class:"node", id:"n-"+k});
+      grp.appendChild(el("rect", {x:n.x, y:n.y, width:n.w, height:n.h, rx:12}));
+      const nm = el("text", {x:n.x+18, y:n.y+32, class:"nm"}); nm.textContent = n.nm;
+      const sub = el("text", {x:n.x+18, y:n.y+54, class:"sub"}); sub.textContent = n.sub;
+      grp.append(nm, sub);
+      if (WALLET_OF[k]){
+        const bal = el("text", {x:n.x+18, y:n.y+84, class:"bal", id:"bal-"+k});
+        bal.textContent = "—"; grp.appendChild(bal);
+      }
+      gNodes.appendChild(grp);
+    }
+    // Pre-draw the standing edges so the graph reads as a system at rest.
+    [["agent_a","monitor"],["monitor","ledger"],["monitor","agent_b"]].forEach(([a,b])=>ensureEdge(a,b));
+  }
+  drawNodes();
+
+  function flash(node, refused){
+    const n = document.getElementById("n-"+node);
+    if (!n) return;
+    n.classList.add("hot");
+    setTimeout(() => n.classList.remove("hot"), 900);
+  }
+
+  function sendPacket(from, to, refused, label){
+    const d = pathFor(from, to);
+    const p = ensureEdge(from, to);
+    p.setAttribute("d", d);
+    p.classList.add(refused ? "refused" : "hot");
+    setTimeout(() => p.classList.remove("hot","refused"), 1100);
+
+    const probe = el("path", {d, fill:"none", stroke:"none"});
+    gPkts.appendChild(probe);
+    const len = probe.getTotalLength();
+    const dot = el("circle", {r:7, fill: refused ? "var(--bad)" : "var(--violet)",
+                              opacity:.95});
+    const halo = el("circle", {r:14, fill: refused ? "var(--bad)" : "var(--violet)", opacity:.16});
+    gPkts.append(halo, dot);
+
+    const DUR = 620, t0 = performance.now();
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function tick(now){
+      const k = reduced ? 1 : Math.min(1, (now - t0) / DUR);
+      const pt = probe.getPointAtLength(len * k);
+      dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+      halo.setAttribute("cx", pt.x); halo.setAttribute("cy", pt.y);
+      if (k < 1) requestAnimationFrame(tick);
+      else { dot.remove(); halo.remove(); probe.remove(); flash(to, refused); }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  let count = 0, current = null;
+  const lastMs = new Map();
+  function addStep(t){
+    $("idle")?.remove();
+    const refused = t.status === "refused";
+    const row = document.createElement("div");
+    row.className = "step " + (refused ? "refused" : "on");
+    const d = t.detail || {};
+    const bits = Object.entries(d).map(([k,v]) => `${k}=${v}`).join("  ");
+    row.innerHTML = `<div class="dot"></div><div><div class="lb"></div><div class="dt"></div></div>
+                     <div class="ms"></div>`;
+    row.querySelector(".lb").textContent = t.label || t.stage;
+    row.querySelector(".dt").textContent = bits;
+    const prev = lastMs.has(t.nonce) ? lastMs.get(t.nonce) : (t.elapsed_ms ?? 0);
+    const delta = Math.max(0, (t.elapsed_ms ?? 0) - prev);
+    lastMs.set(t.nonce, t.elapsed_ms ?? 0);
+    row.querySelector(".ms").textContent =
+      delta >= 1000 ? `${(delta/1000).toFixed(1)}s` : `${delta.toFixed(1)}ms`;
+    row.title = `${(t.elapsed_ms ?? 0).toFixed(0)}ms since the nonce was issued`;
+    // A long gap here is the TPM signing on laptop 1, not the monitor. Say so.
+    if (delta > 1200 && t.stage === "transfer.request"){
+      row.querySelector(".dt").textContent += `   · ${(delta/1000).toFixed(1)}s of this is the TPM signing on laptop 1`;
+    }
+    const box = $("steps"); box.appendChild(row); box.scrollTop = box.scrollHeight;
+    while (box.children.length > 60) box.firstChild.remove();
+  }
+
+  function onStep(t){
+    if (t.nonce !== current){                 // a new transfer: clear the board
+      current = t.nonce;
+      lastMs.delete(t.nonce);
+      $("steps").textContent = "";
+      $("v-tier").textContent = ""; $("v-amt").textContent = "";
+      $("v-count").textContent = ++count;
+    }
+    const d = t.detail || {};
+    if (t.stage === "transfer.request"){
+      $("v-title").textContent = `${d.amount} ${d.currency} to ${d.payee ?? ""}`.trim();
+      $("v-sub").textContent = `nonce ${t.nonce}`;
+      $("v-amt").textContent = `${d.amount} ${d.currency}`;
+    }
+    if (t.stage === "tier.decide"){
+      $("v-tier").textContent = d.tier; $("v-tier").className = "v " + d.tier;
+    }
+    if (t.status === "refused"){
+      $("v-tier").textContent = "refused"; $("v-tier").className = "v refused";
+      $("v-sub").textContent = d.reason || "refused";
+    }
+    if (t.stage === "ledger.capture"){
+      $("v-sub").textContent = `settled · ${(t.elapsed_ms/1000).toFixed(1)}s end to end`;
+    }
+    addStep(t);
+    sendPacket(t.frm || "monitor", t.to || "monitor", t.status === "refused", t.label);
+  }
+
+  function setWallets(w){
+    for (const k in WALLET_OF){
+      const rec = w[WALLET_OF[k]];
+      const node = document.getElementById("bal-"+k);
+      if (rec && node) node.textContent = `${Number(rec.balance).toFixed(2)} AED`;
+    }
+  }
+
+  function connect(){
+    // EventSource reconnects by itself; the old code closed it on the first error and
+    // permanently swapped in a canned replay, so one network blip turned a live money
+    // screen into a fake 20 AED transfer looping every 11 seconds. A dropped stream is
+    // now what it is - a dropped stream - and it recovers on its own.
+    let es;
+    try { es = new EventSource("events"); }
+    catch { return offline("no event stream"); }
+    es.onopen = () => {
+      $("c-link").className = "chip live"; $("v-link").textContent = "live";
+    };
+    es.onerror = () => {
+      // readyState 0 = CONNECTING: it is already retrying. 2 = CLOSED: it gave up.
+      if (es.readyState === 2) {
+        $("c-link").className = "chip warn"; $("v-link").textContent = "disconnected";
+        setTimeout(connect, 3000);
+      } else {
+        $("c-link").className = "chip warn"; $("v-link").textContent = "reconnecting";
+      }
+    };
+    es.onmessage = e => {
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      if (d.type === "hello")   setWallets(d.wallets || {});
+      if (d.type === "wallets") setWallets(d.wallets || {});
+      if (d.type === "step")    onStep(d);
+    };
+  }
+
+  function offline(why){
+    $("c-link").className = "chip warn"; $("v-link").textContent = why || "offline";
+  }
+
+  // A canned transfer, for showing the graph with no backend attached. Opt-in via
+  // ?demo=1 and labelled "not real money": a screen in front of a room must never
+  // invent a payment on its own, which is exactly what the automatic fallback did.
+  function demo(){
+    $("c-demo").hidden = false;
+    $("c-link").className = "chip"; $("v-link").textContent = "replay";
+    setWallets({wal_sagar_aed:{balance:1000}, wal_alex_aed:{balance:50}});
+    const script = [
+      ["nonce.issue","monitor","agent_a","Nonce issued",{},0],
+      ["transfer.request","agent_a","monitor","Transfer requested",
+       {amount:20,currency:"AED",payee:"Alex Morgan"},140],
+      ["signature.verify","monitor","monitor","Device signature verified",
+       {algorithm:"Ed25519",sig:"1622a11fe6046a70\u2026"},210],
+      ["mandate.check","monitor","monitor","Mandate and limits checked",
+       {per_txn:200,spent_today:0,per_day:500,cap:100},260],
+      ["tier.decide","monitor","monitor","Risk tier decided",{tier:"green"},280],
+      ["ledger.authorize","monitor","ledger","Funds reserved",{held:20},340],
+      ["ledger.capture","ledger","ledger","Entries posted",
+       {debit:"-20 AED",credit:"+20 AED"},430],
+      ["event.emit","monitor","agent_b","Payee notified",{to:"agt_alex",amount:20},520],
+    ];
+    let n = 0;
+    const run = () => {
+      const nonce = "n_demo" + (++n);
+      script.forEach(([stage,frm,to,label,detail,ms],i) => setTimeout(() => onStep(
+        {nonce, stage, frm, to, label, detail, status:"ok", elapsed_ms:ms}), 500 + i*700));
+      setTimeout(() => setWallets({wal_sagar_aed:{balance:1000-20*n},
+                                   wal_alex_aed:{balance:50+20*n}}), 500+script.length*700);
+    };
+    run(); setInterval(run, 11000);
+  }
+
+  if (new URLSearchParams(location.search).has("demo")) demo();
+  else connect();
+})();
+</script>
+</body>
+</html>

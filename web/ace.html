@@ -1,0 +1,939 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ACE · Agentic Communication Engine</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#8b7bff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ACE">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05060f;--pnl:rgba(20,22,48,.55);--pnl2:rgba(11,13,30,.5);--ink:#eaf0ff;--dim:#96a0d8;--faint:#5a628f;
+ --vio:#8b7bff;--tl:#31e6c8;--pk:#ff6ad5;--amb:#ffce6b;--ok:#4be3a0;--warn:#ff8a6b;
+ --line:rgba(150,170,255,.18);--mono:"IBM Plex Mono",monospace}
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:
+  radial-gradient(80% 60% at 82% -8%,rgba(139,123,255,.22),transparent),
+  radial-gradient(70% 50% at 0% 4%,rgba(49,230,200,.13),transparent),
+  radial-gradient(60% 55% at 50% 118%,rgba(255,106,213,.10),transparent),var(--bg);
+ color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+ background:repeating-linear-gradient(0deg,rgba(140,150,255,.05) 0 1px,transparent 1px 42px),
+   repeating-linear-gradient(90deg,rgba(140,150,255,.05) 0 1px,transparent 1px 42px);
+ -webkit-mask:radial-gradient(120% 90% at 50% 0%,#000,transparent 82%);
+ mask:radial-gradient(120% 90% at 50% 0%,#000,transparent 82%);animation:griddrift 26s linear infinite}
+@keyframes griddrift{to{background-position:0 42px,42px 0}}
+.mono{font-family:"IBM Plex Mono",monospace}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:22px;display:grid;grid-template-columns:1fr 320px;gap:20px}
+header{grid-column:1/3;display:flex;align-items:center;gap:14px}
+.logo{width:40px;height:40px;border-radius:12px;background:conic-gradient(from 200deg,var(--tl),var(--vio),var(--pk),var(--tl));
+ box-shadow:0 0 26px rgba(139,123,255,.5);position:relative}
+.logo::after{content:"";position:absolute;inset:7px;border-radius:7px;background:var(--bg)}
+h1{margin:0;font-size:22px;letter-spacing:.5px}
+h1 b{background:linear-gradient(90deg,var(--tl),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 small{display:block;font-size:11px;letter-spacing:3px;color:var(--faint);text-transform:uppercase;font-weight:400}
+.tag{margin-left:auto;font:12px/1 var(--mono);color:var(--dim)}
+.tag a{color:var(--tl);text-decoration:none}
+.card{background:linear-gradient(180deg,var(--pnl),var(--pnl2));border:1px solid var(--line);border-radius:18px;padding:18px;
+ position:relative;backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-filter:blur(16px) saturate(1.25);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 44px rgba(0,0,0,.45)}
+.card::after{content:"";position:absolute;inset:0;border-radius:18px;padding:1px;pointer-events:none;
+ background:linear-gradient(140deg,rgba(49,230,200,.55),transparent 32%,transparent 68%,rgba(139,123,255,.55));
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+ mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;opacity:.55}
+.askco{margin-bottom:16px}
+.kbfresh{font:11px var(--mono);color:var(--faint,#8a90b8);font-weight:400;margin-left:8px}
+.askout{margin-top:12px;display:flex;flex-direction:column}
+.qb{align-self:flex-end;background:rgba(139,123,255,.14);border:1px solid rgba(139,123,255,.35);padding:8px 12px;border-radius:12px;margin:4px 0 10px;max-width:85%;width:fit-content}
+.ab{background:rgba(49,230,200,.05);border:1px solid rgba(49,230,200,.2);padding:11px 14px;border-radius:12px;white-space:pre-wrap;line-height:1.5;font-size:14px}
+.ab b,.ab strong{color:#fff}
+.fbbar{display:flex;align-items:center;gap:8px;margin:10px 2px 0;font:12px var(--mono);color:var(--faint,#8a90b8)}
+.fbb{background:#141a2e;border:1px solid var(--line);border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px}
+.fbb:hover{border-color:var(--vio)}
+.routeout{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.rrow{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;background:#0d1826;border:1px solid var(--line)}
+.rnum{font:12px var(--mono);color:var(--vio);width:24px}
+.rmain{flex:1;min-width:0}
+.rname{font-size:14px;color:var(--ink,#e7ebff)}
+.rchip{font:10px var(--mono);color:var(--tl);border:1px solid rgba(49,230,200,.4);padding:1px 6px;border-radius:9px;margin-left:6px}
+.rwhy{font-size:11px;color:var(--faint,#8a90b8);margin-top:2px}
+.rtrust{font:10px var(--mono);color:var(--amb)}
+.rmods{font:11px var(--mono);color:var(--faint,#8a90b8);margin-top:4px}
+.llist{max-height:320px;overflow:auto;margin-top:6px}
+.lrow{display:flex;gap:8px;align-items:flex-start;padding:9px 10px;margin:5px 0;border-radius:9px;background:#0d1826;border:1px solid var(--line)}
+.lmain{flex:1;min-width:0}
+.lq{font-size:13px;color:var(--ink,#e7ebff)}
+.lreason{font-size:11px;color:var(--amb);margin-top:2px}
+.la{font-size:11px;color:var(--faint,#8a90b8);margin-top:3px;line-height:1.4}
+.lmeta{font:10px var(--mono);color:var(--faint,#8a90b8);margin-top:3px}
+.lb{font:9px var(--mono);padding:1px 6px;border-radius:8px;margin-right:5px}
+.lb.up{color:var(--ok);border:1px solid rgba(75,227,160,.4)}
+.lb.corr{color:var(--tl);border:1px solid rgba(49,230,200,.4)}
+.lb.down{color:var(--warn);border:1px solid rgba(255,138,107,.4)}
+.delx{background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--faint);cursor:pointer;padding:2px 7px}
+.delx:hover{border-color:var(--warn);color:var(--warn)}
+.console h3,.side h3{margin:0 0 12px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--faint)}
+.ask{display:flex;gap:10px;align-items:flex-start}
+textarea{flex:1;min-height:64px;resize:vertical;background:#0c0e20;border:1px solid var(--line);border-radius:12px;
+ color:var(--ink);padding:12px 14px;font:15px "Space Grotesk";outline:none}
+textarea:focus{border-color:var(--vio)}
+.go{background:linear-gradient(180deg,var(--vio),#6b5bff);color:#fff;border:0;border-radius:12px;padding:0 20px;height:64px;
+ font-weight:700;cursor:pointer;font-size:15px;box-shadow:0 8px 24px rgba(139,123,255,.35)}
+.go:disabled{opacity:.5}
+.ex{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ex span{cursor:pointer;font:12px var(--mono);color:var(--dim);border:1px solid var(--line);padding:5px 10px;border-radius:20px}
+.ex span:hover{border-color:var(--tl);color:var(--ink)}
+.build{margin-top:16px;display:none}
+.build.on{display:block;animation:fade .4s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+.buildbox{border-left:3px solid var(--tl);background:rgba(49,230,200,.06);padding:12px 14px;border-radius:0 12px 12px 0;font-size:15px;line-height:1.5}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:14px}
+.task{background:#0d1024;border:1px solid var(--line);border-radius:14px;padding:13px;position:relative;animation:fade .4s}
+.task .tt{font-weight:600;font-size:14px;margin-bottom:8px;padding-right:20px}
+.task .num{position:absolute;top:11px;right:12px;font:10px var(--mono);color:var(--faint)}
+.assignee{display:flex;align-items:center;gap:8px;margin:8px 0}
+.av{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font:600 11px "Space Grotesk";color:#0a0b16;flex:none}
+.assignee .nm{font-size:13px;font-weight:600}.assignee .rl{font:10px var(--mono);color:var(--faint)}
+.unassigned .av{background:#333}.person .av{background:var(--amb)}
+.skills{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+.sk{font:10px var(--mono);color:var(--tl);border:1px solid rgba(49,230,200,.3);padding:1px 7px;border-radius:12px}
+.deliv{font-size:12px;color:var(--dim);line-height:1.4}
+.coord{margin-top:8px;font:11px var(--mono);color:var(--warn);border:1px solid rgba(255,138,107,.3);
+ background:rgba(255,138,107,.07);padding:5px 8px;border-radius:8px}
+.dep{font:10px var(--mono);color:var(--faint);margin-top:6px}
+.status{margin-top:9px;display:inline-block;font:11px var(--mono);padding:3px 10px;border-radius:20px;cursor:pointer;
+ border:1px solid var(--line);color:var(--dim);user-select:none}
+.status.s-assigned{color:var(--dim)}
+.status.s-in-progress{color:var(--amb);border-color:rgba(255,206,107,.4);background:rgba(255,206,107,.08)}
+.status.s-done{color:var(--ok);border-color:rgba(75,227,160,.4);background:rgba(75,227,160,.08)}
+.status.s-blocked{color:var(--warn);border-color:rgba(255,138,107,.4);background:rgba(255,138,107,.08)}
+.side{display:flex;flex-direction:column;gap:16px;grid-column:2;grid-row:3/span 4;align-self:start;position:sticky;top:16px}
+/* explicit placement so cards stop jumbling across columns */
+.orbcard{grid-column:1/3}
+.askco,.console{grid-column:1}
+.worker{display:flex;align-items:center;gap:9px;padding:8px;border-radius:10px}
+.worker:hover{background:rgba(150,160,255,.05)}
+.dot{width:7px;height:7px;border-radius:50%;background:#3a3f66;flex:none}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.worker .nm{font-size:13px;font-weight:600}.worker .sk{font:10px var(--mono);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.spin{width:16px;height:16px;border:2px solid rgba(139,123,255,.3);border-top-color:var(--vio);border-radius:50%;display:inline-block;animation:sp .7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.wo{font:11px var(--mono);color:var(--faint);padding:7px 0;border-bottom:1px solid rgba(150,160,255,.06);cursor:pointer}
+.wo b{color:var(--dim)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}
+ .orbcard,.askco,.console,.side{grid-column:1;grid-row:auto;position:static}}
+.amodal{position:fixed;inset:0;z-index:40;background:rgba(3,5,12,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+.amodal.on{display:flex}
+.acard{width:min(560px,94vw);max-height:86vh;overflow:auto;background:linear-gradient(180deg,#0b1428,#070b16);border:1px solid var(--line);border-radius:18px;padding:20px}
+.abar{display:flex;align-items:center;margin-bottom:14px}.abar b{color:var(--vio);letter-spacing:.5px}.ax{margin-left:auto;cursor:pointer;color:var(--faint)}
+.asec input{background:#0c0e20;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
+.asec input:focus{border-color:var(--vio)}
+.urow{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;border:1px solid var(--line);margin:7px 0}
+.urow .ue{font-size:13px;font-weight:600}.urow .um{font:11px var(--mono);color:var(--faint)}
+.pill{font:10px var(--mono);padding:2px 8px;border-radius:12px;margin-left:auto}
+.pill.ok{color:var(--ok);border:1px solid rgba(75,227,160,.4)}.pill.pend{color:var(--amb);border:1px solid rgba(255,206,107,.4)}
+.appbtn{background:var(--ok);color:#04121a;border:0;border-radius:9px;padding:7px 12px;font-weight:700;cursor:pointer;margin-left:auto}
+.rolechip{font:9px var(--mono);color:var(--vio);border:1px solid rgba(139,123,255,.4);padding:1px 6px;border-radius:10px}
+.go.mic{padding:0 12px;font-size:16px}.go.mic.on{background:var(--warn);color:#1a0606}
+/* ---------- JARVIS holographic voice orb (canvas) ---------- */
+.orbcard{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 140px);gap:18px;
+  background:radial-gradient(120% 90% at 50% 20%,rgba(120,90,255,.10),rgba(6,8,16,.6));position:relative;overflow:hidden}
+.orbcard::before{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(0deg,rgba(140,120,255,.04) 0 1px,transparent 1px 34px),
+  repeating-linear-gradient(90deg,rgba(140,120,255,.04) 0 1px,transparent 1px 34px);
+  mask:radial-gradient(70% 70% at 50% 45%,#000,transparent 75%);pointer-events:none}
+.orbstage{width:100%;height:clamp(440px,66vh,720px);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;z-index:1}
+#orbcanvas{position:absolute;inset:0;width:100%;height:100%}
+#briefnodes{position:absolute;inset:0;pointer-events:none;z-index:2}
+.bnode{position:absolute;transform:translate(-50%,-50%) scale(.8);opacity:0;transition:opacity .55s ease,transform .55s cubic-bezier(.2,.9,.25,1);
+ display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;width:170px;
+ padding:7px 10px;border-radius:12px;background:rgba(10,12,26,.55);border:1px solid rgba(150,160,255,.16);backdrop-filter:blur(6px)}
+.bnode.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.bn-name{font-size:12.5px;font-weight:700;color:#eaf0ff;text-shadow:0 0 12px rgba(150,130,255,.7);letter-spacing:.3px}
+.bn-feat{font:10px var(--mono);color:#b79bff;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bn-meta{display:flex;gap:6px;align-items:center;margin-top:1px}
+.bn-st{font:9px var(--mono);font-style:normal;color:var(--tl);border:1px solid rgba(49,230,200,.35);padding:0 6px;border-radius:9px;text-transform:uppercase;letter-spacing:.5px}
+.bn-c{font:9px var(--mono);font-style:normal;color:var(--amb)}
+.orbstatus{font-size:13px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;min-height:18px;transition:color .3s;z-index:1}
+.orbstage.speaking ~ .orbstatus,.orbcard.speaking .orbstatus{color:#b79bff}
+.orbmic{z-index:2;margin-top:4px;background:rgba(139,123,255,.14);border:1px solid rgba(139,123,255,.4);color:#d9d4ff;
+ border-radius:22px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.4px;transition:.2s}
+.orbmic:hover{border-color:var(--vio);background:rgba(139,123,255,.22)}
+.orbmic.on{background:rgba(49,230,200,.16);border-color:var(--tl);color:#bff6ec;animation:micpulse 1.2s infinite}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(49,230,200,.5)}50%{box-shadow:0 0 0 8px rgba(49,230,200,0)}}
+.orbquick{z-index:2;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.orbquick button{background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--dim);border-radius:20px;
+ padding:6px 14px;font-size:12px;cursor:pointer;transition:.2s;font-family:inherit}
+.orbquick button:hover{border-color:var(--vio);color:var(--ink);background:rgba(139,123,255,.10)}
+.scrolldn{z-index:2;font:11px var(--mono);color:var(--faint);letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+ opacity:.7;animation:bob 2.2s ease-in-out infinite}
+.scrolldn:hover{color:var(--tl)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+/* ============================ REDESIGN (mockup-matched) ============================ */
+:root{--grad:linear-gradient(135deg,#a78bfa,#7c5cff 55%,#6d4bff)}
+body{background:#04030a;overflow-x:hidden}
+/* ---- rich galaxy background ---- */
+#galaxy{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+ background:
+  radial-gradient(880px 720px at 24% 54%, rgba(160,86,240,.42), transparent 60%),
+  radial-gradient(1250px 900px at 9% 90%, rgba(84,66,205,.48), transparent 62%),
+  radial-gradient(1050px 760px at 90% 12%, rgba(188,86,232,.36), transparent 60%),
+  radial-gradient(760px 640px at 64% 36%, rgba(120,88,244,.26), transparent 62%),
+  radial-gradient(1200px 1000px at 28% 18%, rgba(58,86,220,.26), transparent 60%),
+  radial-gradient(1500px 1080px at 52% 126%, rgba(150,74,228,.24), transparent 60%),
+  #050311}
+.neb{position:absolute;border-radius:50%;filter:blur(56px);opacity:.62;mix-blend-mode:screen;will-change:transform}
+.neb.a{width:700px;height:560px;left:0%;top:46%;background:radial-gradient(closest-side,rgba(168,88,240,.8),transparent);animation:drift 40s ease-in-out infinite}
+.neb.b{width:560px;height:480px;right:3%;top:3%;background:radial-gradient(closest-side,rgba(212,104,240,.6),transparent);animation:drift 48s ease-in-out infinite reverse}
+.neb.c{width:460px;height:460px;left:44%;top:24%;background:radial-gradient(closest-side,rgba(92,120,246,.55),transparent);animation:drift 56s ease-in-out infinite}
+.neb.d{width:400px;height:380px;left:66%;top:58%;background:radial-gradient(closest-side,rgba(150,78,232,.5),transparent);animation:drift 44s ease-in-out infinite reverse}
+@keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(34px,-26px)}}
+#stars{position:absolute;inset:0;width:100%;height:100%}
+.planet{position:absolute;left:-230px;bottom:-280px;width:680px;height:680px;border-radius:50%;
+ background:
+  radial-gradient(230px 230px at 76% 22%, rgba(150,196,255,.55), transparent 52%),
+  radial-gradient(closest-side,#0b0b26,#060414 74%);
+ box-shadow:inset -48px -36px 140px rgba(0,0,0,.72), inset 30px 22px 60px rgba(120,160,255,.10), 0 0 180px rgba(130,96,244,.30);
+ border:1px solid rgba(160,190,255,.14)}
+.shell{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:16px 20px 60px}
+/* ---- top nav ---- */
+.topnav{display:flex;align-items:center;gap:18px;padding:10px 2px;margin-bottom:26px;position:sticky;top:6px;z-index:30}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .logo{width:34px;height:34px;border-radius:10px;background:var(--grad);box-shadow:0 0 22px rgba(124,92,255,.55);position:relative}
+.brand .logo::after{content:"";position:absolute;inset:6px 6px;border-left:2px solid rgba(255,255,255,.9);border-bottom:2px solid rgba(255,255,255,.9);transform:rotate(45deg) scale(.7);opacity:.85}
+.brand b{font-size:19px;letter-spacing:3px;font-weight:700}
+.brand small{display:block;font:9px var(--mono);letter-spacing:3px;color:var(--faint);text-transform:uppercase;margin-top:1px}
+.navtabs{display:flex;gap:3px;margin-left:6px;background:rgba(28,26,60,.5);border:1px solid var(--line);border-radius:16px;padding:5px;backdrop-filter:blur(14px)}
+.navtab{display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:11px;color:var(--dim);font-size:14px;
+ cursor:pointer;text-decoration:none;transition:.18s;border:1px solid transparent;white-space:nowrap}
+.navtab:hover{color:var(--ink);background:rgba(255,255,255,.03)}
+.navtab.on{color:#fff;background:rgba(124,92,255,.16);border-color:rgba(139,123,255,.4)}
+.navright{margin-left:auto;display:flex;align-items:center;gap:8px;background:rgba(28,26,60,.5);border:1px solid var(--line);border-radius:20px;padding:6px 6px 6px 8px;backdrop-filter:blur(14px)}
+.voicebtn{display:flex;align-items:center;gap:9px;background:var(--grad);color:#fff;border:0;border-radius:13px;
+ padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px rgba(109,75,255,.4)}
+.voicebtn .wv{display:inline-flex;gap:2px;align-items:center}
+.voicebtn .wv i{width:2px;height:12px;background:rgba(255,255,255,.85);border-radius:2px;animation:eq 1s ease-in-out infinite}
+.voicebtn .wv i:nth-child(2){height:8px;animation-delay:.15s}.voicebtn .wv i:nth-child(3){height:14px;animation-delay:.3s}
+@keyframes eq{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-weight:700;
+ font-size:13px;color:#fff;cursor:pointer;box-shadow:0 0 0 2px rgba(139,123,255,.3)}
+/* ---- dashboard grid ---- */
+.dash{display:grid;grid-template-columns:1fr 380px;gap:18px;align-items:start}
+/* ask hero (landing) */
+.askcard{min-height:560px;display:flex;flex-direction:column;padding:28px 30px}
+.askrow{display:flex;gap:12px;align-items:stretch;margin-bottom:18px}
+.askbox{flex:1;display:flex;align-items:flex-start;gap:10px;background:#0b0d1e;border:1px solid var(--line);border-radius:15px;padding:14px}
+.askbox:focus-within{border-color:var(--vio);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
+.askbox .si{color:var(--vio);font-size:16px;margin-top:2px}
+.askbox textarea{flex:1;background:transparent;border:0;color:var(--ink);font:15px "Space Grotesk";outline:none;resize:none;min-height:52px;max-height:130px}
+.askbox .kbd{color:var(--faint);align-self:flex-end;font-size:16px}
+.go.askbig{height:auto;align-self:stretch;min-width:132px;border-radius:15px;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.askcard .briefdot{display:flex;align-items:center;gap:8px;font:11px var(--mono);letter-spacing:3px;
+ text-transform:uppercase;color:var(--vio)}
+.askcard .briefdot i{width:8px;height:8px;border-radius:50%;background:var(--vio);box-shadow:0 0 10px var(--vio);animation:blip 1.6s infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+.askhero{font-size:58px;font-weight:700;letter-spacing:-1px;line-height:1.02;margin:14px 0 6px;
+ background:linear-gradient(180deg,#fff,#c9c3ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.askcard .lead{font-size:16px;color:var(--dim);margin-bottom:18px}
+.askcard hr{border:0;border-top:1px solid var(--line);margin:0 0 18px}
+.askfoot{margin-top:auto;padding-top:16px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)}
+.askfoot .sh{color:var(--tl)}.askfoot b{color:var(--tl);font-weight:600}
+.pcard{background:linear-gradient(180deg,rgba(22,24,48,.62),rgba(12,14,30,.55));border:1px solid var(--line);
+ border-radius:20px;padding:20px;backdrop-filter:blur(16px);position:relative;overflow:hidden}
+.pcard::after{content:"";position:absolute;inset:0;border-radius:20px;padding:1px;pointer-events:none;
+ background:linear-gradient(150deg,rgba(139,123,255,.5),transparent 30%,transparent 72%,rgba(49,230,200,.35));
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+ mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;opacity:.5}
+.pc-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:16px}
+.pc-head.sm{align-items:center;margin-bottom:14px}
+.pc-ic{width:46px;height:46px;flex:none;border-radius:13px;display:grid;place-items:center;font-size:20px;
+ background:rgba(124,92,255,.16);border:1px solid rgba(139,123,255,.35);box-shadow:0 0 20px rgba(124,92,255,.25)}
+.pc-head.sm .pc-ic{width:38px;height:38px;font-size:17px;border-radius:11px}
+.pc-title{font-size:20px;font-weight:700;letter-spacing:.2px}
+.pc-head.sm .pc-title{font-size:16px}
+.pc-sub{font-size:13px;color:var(--dim);margin-top:3px}
+.viewall{margin-left:auto;font-size:12px;color:var(--vio);cursor:pointer;text-decoration:none;white-space:nowrap}
+.viewall:hover{color:#c9beff}
+/* ask card */
+.searchrow{display:flex;align-items:center;gap:10px;background:#0b0d1e;border:1px solid var(--line);border-radius:14px;
+ padding:6px 8px 6px 14px;margin-bottom:14px}
+.searchrow:focus-within{border-color:var(--vio);box-shadow:0 0 0 3px rgba(124,92,255,.12)}
+.searchrow .si{color:var(--faint);font-size:15px}
+.searchrow textarea{flex:1;background:transparent;border:0;color:var(--ink);font:15px "Space Grotesk";outline:none;resize:none;min-height:26px;max-height:120px;padding:8px 0}
+.sugtitle{font-size:12px;color:var(--faint);margin:4px 2px 8px;letter-spacing:.3px}
+#asksug{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#asksug span{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:13px;border-radius:13px;
+ background:rgba(255,255,255,.02);border:1px solid var(--line);color:var(--ink);font-size:12.5px;line-height:1.4;cursor:pointer;transition:.16s}
+#asksug span::before{content:"✦";color:var(--vio);font-size:15px}
+#asksug span:hover{border-color:var(--vio);background:rgba(124,92,255,.08);transform:translateY(-2px)}
+@media(max-width:640px){#asksug{grid-template-columns:1fr 1fr}}
+/* build card */
+.reqwrap{position:relative;margin-bottom:12px}
+#req{width:100%;min-height:150px;background:#0b0d1e;border:1px solid var(--line);border-radius:14px;color:var(--ink);
+ padding:14px 16px;font:15px/1.5 "Space Grotesk";outline:none;resize:vertical}
+#req:focus{border-color:var(--vio)}
+.charc{position:absolute;right:12px;bottom:10px;font:11px var(--mono);color:var(--faint)}
+#ex{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+#ex span{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.02);
+ border:1px solid var(--line);color:var(--ink);font-size:12.5px;cursor:pointer;line-height:1.35;transition:.16s}
+#ex span::before{content:"◈";color:var(--tl);font-size:12px;flex:none}
+#ex span:hover{border-color:var(--vio);background:rgba(124,92,255,.08)}
+.go.big{width:100%;height:56px;font-size:16px;border-radius:15px}
+/* generic gradient CTA */
+.go{background:var(--grad);color:#fff;border:0;border-radius:13px;padding:0 22px;height:48px;font-weight:700;
+ cursor:pointer;font-size:15px;box-shadow:0 10px 26px rgba(109,75,255,.35);transition:.15s;white-space:nowrap}
+.go:hover{filter:brightness(1.08)}.go:disabled{opacity:.5}
+/* right rail: roster + work orders */
+.rail{display:flex;flex-direction:column;gap:18px;position:sticky;top:88px}
+.ritem{display:flex;align-items:center;gap:11px;padding:9px 4px}
+.ritem+.ritem{border-top:1px solid rgba(150,160,255,.07)}
+.ravatar{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:12px;color:#0a0b16;position:relative}
+.ravatar .st{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;border:2px solid #0b0d1e;background:var(--faint)}
+.ravatar .st.on{background:var(--ok)}
+.rmain{min-width:0;flex:1}
+.rname{font-size:13.5px;font-weight:600}
+.rrole{font:11px var(--mono);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rskills{display:flex;gap:5px;flex-wrap:wrap;max-width:150px;justify-content:flex-end}
+.skpill{font:10px var(--mono);padding:3px 8px;border-radius:9px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.rstat{font:11px var(--mono);color:var(--faint);white-space:nowrap}.rstat.on{color:var(--ok)}
+.woitem{display:flex;align-items:center;gap:11px;padding:11px 4px}
+.woitem+.woitem{border-top:1px solid rgba(150,160,255,.07)}
+.woic{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;font-size:15px;background:rgba(124,92,255,.12);border:1px solid var(--line)}
+.wotitle{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wometa{font:10.5px var(--mono);color:var(--faint);margin-top:2px}
+.stpill{font:10px var(--mono);padding:3px 10px;border-radius:11px;white-space:nowrap}
+.stpill.prog{color:var(--vio);background:rgba(124,92,255,.14);border:1px solid rgba(139,123,255,.4)}
+.stpill.rev{color:var(--amb);background:rgba(255,206,107,.12);border:1px solid rgba(255,206,107,.35)}
+.stpill.done{color:var(--ok);background:rgba(75,227,160,.12);border:1px solid rgba(75,227,160,.35)}
+.stpill.queue{color:var(--dim);background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.wotime{font:10px var(--mono);color:var(--faint);white-space:nowrap}
+/* voice / orb view */
+.voiceview{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:calc(100vh - 160px);position:relative}
+.voiceview::before{content:"";position:absolute;inset:0;background:
+ repeating-linear-gradient(0deg,rgba(140,120,255,.045) 0 1px,transparent 1px 40px),
+ repeating-linear-gradient(90deg,rgba(140,120,255,.045) 0 1px,transparent 1px 40px);
+ -webkit-mask:radial-gradient(70% 70% at 50% 45%,#000,transparent 78%);mask:radial-gradient(70% 70% at 50% 45%,#000,transparent 78%);pointer-events:none}
+/* near-black backdrop shown ONLY on the voice view, so the globe pops on black like the reference
+   (Dashboard keeps the purple nebula). Sits above #galaxy (z0), below the shell content (z1). */
+#voidveil{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .45s ease;
+ background:radial-gradient(56% 52% at 50% 44%,rgba(6,5,11,.34),rgba(5,4,10,.88) 60%,#04030a 100%)}
+body.vbg #voidveil{opacity:1}
+@media(max-width:1080px){.dash{grid-template-columns:1fr}.rail{position:static}.navtabs{display:none}}
+</style></head><body>
+<div id="galaxy"><div class="neb a"></div><div class="neb b"></div><div class="neb c"></div><div class="neb d"></div><canvas id="stars"></canvas><div class="planet"></div></div>
+<div id="voidveil"></div>
+<div class="shell">
+ <nav class="topnav">
+   <div class="brand"><div class="logo"></div><div><b>ACE</b><small>Agentic Communication Engine</small></div></div>
+   <div class="navtabs">
+     <a class="navtab on" id="tab-dash" onclick="showDash()">◇ Dashboard</a>
+     <a class="navtab" id="tab-voice" onclick="showVoice()">◈ Voice</a>
+     <a class="navtab" id="tab-build" onclick="showBuild()">▣ Build</a>
+     <a class="navtab" href="/db">⛓ DB Map</a>
+     <a class="navtab" onclick="openAdmin()">🛡 Admin</a>
+   </div>
+   <div class="navright">
+     <button class="voicebtn" onclick="showVoice()">🎙 Voice <span class="wv"><i></i><i></i><i></i></span></button>
+     <div class="avatar" id="avatar" onclick="openAdmin()">JS</div>
+   </div>
+ </nav>
+ <span id="kbfresh2" style="display:none"></span>
+
+ <!-- ===================== DASHBOARD ===================== -->
+ <div id="dashboard" class="dash">
+   <section class="pcard askcard">
+     <div class="briefdot"><i></i> Briefing…</div>
+     <div class="askhero">Ask the company</div>
+     <div class="lead">Query anything. Agents collaborate. You get clarity.</div>
+     <hr>
+     <div class="askrow">
+       <div class="askbox"><span class="si">✦</span>
+         <textarea id="askq" rows="2" placeholder="What would you like to know about the company?" oninput="_grow(this)"></textarea>
+         <span class="kbd">⌨</span></div>
+       <button class="go askbig" id="askbtn" onclick="askCompany()">✦ Ask →</button></div>
+     <div class="sugtitle">Suggested questions</div>
+     <div class="ex" id="asksug"></div>
+     <div id="askout" class="askout"></div>
+     <div class="askfoot"><span class="sh">🛡</span> All agents synchronized · <b>Live context active</b></div>
+   </section>
+
+   <aside class="rail">
+     <section class="pcard">
+       <div class="pc-head sm"><div class="pc-ic">👥</div><div class="pc-title">Team Roster</div>
+         <span class="viewall" id="rc"></span></div>
+       <div id="roster"></div>
+     </section>
+     <section class="pcard">
+       <div class="pc-head sm"><div class="pc-ic">🗒</div><div class="pc-title">Recent Work Orders</div>
+         <span class="viewall" onclick="loadWOs()">Refresh ↻</span></div>
+       <div id="wos"></div>
+     </section>
+   </aside>
+ </div>
+
+ <!-- ===================== BUILD ===================== -->
+ <div id="buildview" style="display:none">
+   <section class="pcard buildcard" style="max-width:820px;margin:8px auto">
+     <div class="pc-head"><div class="pc-ic">▣</div>
+       <div><div class="pc-title">Describe what you want built</div>
+       <div class="pc-sub">Turn your idea into a work order — ACE will analyse, route, and create it.</div></div></div>
+     <div class="reqwrap">
+       <textarea id="req" placeholder="A customer dashboard that shows order status, invoices, and delivery estimates. Include role-based access…" oninput="_charc()"></textarea>
+       <div class="charc"><span id="charc">0</span> / 1000</div></div>
+     <div class="ex" id="ex"></div>
+     <button class="go big" id="go" onclick="dispatch()">Dispatch Work Order →</button>
+     <div class="build" id="build">
+       <h3 style="margin-top:18px">What needs to get built</h3>
+       <div class="buildbox" id="buildbox"></div>
+       <h3 style="margin-top:18px">Who does what · <span class="mono" id="woid" style="color:var(--vio)"></span></h3>
+       <div class="board" id="board"></div>
+     </div>
+   </section>
+ </div>
+
+ <!-- ===================== VOICE / ORB ===================== -->
+ <div id="voiceview" class="voiceview" style="display:none">
+   <div class="orbstatus" id="orbstatus" style="letter-spacing:3px">tap the core to speak with ACE</div>
+   <div class="orbstage" id="orbstage" onclick="toggleBriefing()">
+     <canvas id="orbcanvas"></canvas><div id="briefnodes"></div>
+   </div>
+   <button class="orbmic" id="orbmic" onclick="listenAsk(event)">🎙 Ask ACE by voice</button>
+ </div>
+
+ <div class="amodal" id="amodal">
+   <div class="acard">
+     <div class="abar"><b>⚙ Admin — users &amp; access</b><span class="ax" onclick="el('amodal').classList.remove('on')">✕</span></div>
+     <div id="alogin" class="asec">
+       <div style="color:var(--dim);font-size:13px;margin-bottom:8px">Sign in with an <b>admin</b> account to manage users.</div>
+       <input id="aemail" placeholder="admin work email" style="width:100%">
+       <button class="go" style="width:100%;height:44px;margin-top:10px" onclick="adminLogin()">Sign in</button>
+       <div id="aerr" style="color:var(--warn);font-size:12px;margin-top:8px"></div>
+     </div>
+     <div id="apanel" class="asec" style="display:none">
+       <div class="k">add a user (auto-approved)</div>
+       <div style="display:flex;gap:8px">
+         <input id="nu_email" placeholder="email" style="flex:1">
+         <input id="nu_name" placeholder="name" style="width:120px">
+         <button class="go" style="height:40px;padding:0 14px" onclick="addUser()">Add</button>
+       </div>
+       <div class="k" style="margin-top:16px">users <span id="ucount" style="color:var(--vio)"></span></div>
+       <div id="ulist"></div>
+       <div class="k" style="margin-top:18px">🧠 learnings <span id="lstats" style="color:var(--vio)"></span>
+         <span style="color:var(--faint);font-weight:400"> — human feedback that fine-tunes Ask</span></div>
+       <div id="llist" class="llist"></div>
+       <div class="k" style="margin-top:18px">🏢 tenants <span style="color:var(--faint);font-weight:400"> — per-company knowledge graphs</span></div>
+       <div id="tlist"></div>
+     </div>
+   </div>
+ </div>
+
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const el=id=>document.getElementById(id);
+const api=(p,o)=>fetch(p,o).then(r=>r.json());
+const col=n=>`hsl(${[...n].reduce((a,c)=>a+c.charCodeAt(0),0)%360} 70% 62%)`;
+const ini=n=>n.split(/[ .]/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+// live "what to build next" — grounded in the features the team is building right now
+const EX_FALLBACK=["Add a /health endpoint with a smoke test","Add end-to-end tests for the most active module","Surface a recent backend change in the admin UI"];
+function _renderEx(list){ $('#ex').innerHTML=(list||EX_FALLBACK).map(e=>`<span>${esc(e)}</span>`).join('');
+  document.querySelectorAll('.ex span').forEach(s=>s.onclick=()=>{$('#req').value=s.textContent;dispatch();}); }
+async function loadBuildSug(){
+  const sess=askSession(); if(!sess){_renderEx(EX_FALLBACK);return;}
+  try{ const d=await api(`/amp/build/suggestions?agent_id=${encodeURIComponent(sess.from)}&token=${encodeURIComponent(sess.token)}`);
+    _renderEx(d.suggestions&&d.suggestions.length?d.suggestions:EX_FALLBACK); }
+  catch(e){ _renderEx(EX_FALLBACK); }
+}
+
+const STMOJI={assigned:'○','in-progress':'◐',done:'●',blocked:'⛔'};
+const STFLOW={assigned:'in-progress','in-progress':'done',done:'assigned',blocked:'in-progress'};
+async function advance(wo,i,el){
+ const cur=el.textContent.trim().split(' ').pop(); const next=STFLOW[cur]||'in-progress';
+ el.className='status s-'+next; el.textContent=STMOJI[next]+' '+next;
+ await fetch('/amp/task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wo,index:i,status:next})});
+ loadWOs();
+}
+async function loadRoster(){
+ const d=await api('/amp/roster'); const r=d.roster||[];
+ $('#rc').textContent=r.length?r.length+' →':'';
+ $('#roster').innerHTML=r.map(w=>{
+   const role=w.role||((w.skills||[])[0]?((w.skills[0][0].toUpperCase()+w.skills[0].slice(1))+' Lead'):'Agent');
+   return `<div class="ritem" onclick="editSkills('${w.agent_id}','${(w.skills||[]).join(', ')}')" title="click to edit skills">
+     <div class="ravatar" style="background:${col(w.name)}">${ini(w.name)}<span class="st ${w.online?'on':''}"></span></div>
+     <div class="rmain"><div class="rname">${esc(w.name)}</div><div class="rrole">${esc(role)}</div></div>
+     <div class="rstat ${w.online?'on':''}">● ${w.online?'Online':'Offline'}</div></div>`;
+ }).join('')||'<div class="rrole" style="padding:8px 4px">no one online — open the mesh client to join</div>';
+}
+async function editSkills(id,cur){
+ const v=prompt('Skills for '+id+' (comma-separated):',cur); if(v===null)return;
+ const skills=v.split(',').map(s=>s.trim()).filter(Boolean);
+ await fetch('/amp/admin/skills',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:id,skills})});
+ loadRoster();
+}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+function _woStatus(w){ const ts=w.tasks||[]; if(!ts.length)return['queue','Queued'];
+ const st=ts.map(t=>t.status||'assigned');
+ if(st.every(s=>s==='done'))return['done','Done'];
+ if(st.some(s=>s==='blocked'))return['rev','Blocked'];
+ if(st.some(s=>s==='in-progress'))return['prog','In Progress'];
+ if(st.some(s=>s==='done'))return['prog','In Progress'];
+ return['queue','Queued']; }
+function _woAgo(ts){ if(!ts)return''; const s=(Date.now()-Date.parse(ts))/1000;
+ if(isNaN(s))return''; if(s<3600)return Math.max(1,Math.round(s/60))+'m ago'; if(s<86400)return Math.round(s/3600)+'h ago'; return Math.round(s/86400)+'d ago'; }
+async function loadWOs(){
+ const d=await api('/amp/workorders');
+ $('#wos').innerHTML=(d.workorders||[]).slice(0,6).map(w=>{
+   const[c,l]=_woStatus(w); const who=(w.tasks&&w.tasks[0]&&(w.tasks[0].assignee_name||''))||w.requester||'';
+   const title=(w.build||'Work order').replace(/^\*+/,'').slice(0,42);
+   return `<div class="woitem" title="${(w.build||'').replace(/"/g,'&quot;')}">
+     <div class="woic">🗒</div>
+     <div class="rmain"><div class="wotitle">${esc(title)}</div><div class="wometa">${esc(w.id)}${who?' · '+esc(who):''}</div></div>
+     <span class="stpill ${c}">${l}</span><span class="wotime">${_woAgo(w.ts)}</span></div>`;
+ }).join('')||'<div class="rrole" style="padding:8px 4px">no work orders yet</div>';
+}
+function render(d){
+ $('#build').classList.add('on'); $('#woid').textContent=d.workorder||'';
+ $('#buildbox').textContent=d.build||'(no plan)';
+ $('#board').innerHTML=(d.tasks||[]).map((t,i)=>{
+   const who=t.assignee||'UNASSIGNED'; const person=who.startsWith('person:'); const un=who==='UNASSIGNED';
+   const nm=t.assignee_name||who.replace('person:','')||'Unassigned';
+   const cls=un?'unassigned':person?'person':'';
+   const av=un?'?':ini(nm);
+   return `<div class="task ${cls}"><div class="num">#${i+1}</div><div class="tt">${esc(t.title||'')}</div>
+     <div class="assignee"><div class="av" style="${un||person?'':'background:'+col(nm)}">${av}</div>
+       <div><div class="nm">${esc(nm)}</div><div class="rl">${person?'expert · not yet on ACE':un?'needs a specialist':'agent · '+who}</div></div></div>
+     <div class="skills">${(t.skills||[]).map(s=>`<span class="sk">${esc(s)}</span>`).join('')}</div>
+     <div class="deliv">${esc(t.deliverable||'')}</div>
+     ${t.coordinate?`<div class="coord">⚠ coordinate: ${esc(t.coordinate)}</div>`:''}
+     ${(t.depends_on>=0)?`<div class="dep">depends on #${t.depends_on+1}</div>`:''}
+     <div class="status s-${(t.status||'assigned')}" onclick="advance('${d.workorder}',${i},this)">${STMOJI[t.status||'assigned']} ${t.status||'assigned'}</div></div>`;
+ }).join('');
+ loadWOs();
+}
+async function dispatch(){
+ const request=$('#req').value.trim(); if(!request)return;
+ $('#go').disabled=true; $('#build').classList.add('on');
+ $('#buildbox').innerHTML='<span class="spin"></span> ACE is routing — deciding what to build & who to call…';
+ $('#board').innerHTML=''; $('#woid').textContent='';
+ try{ const d=await api('/amp/ace',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request})}); render(d); dispatchGlobe(d);}
+ catch(e){ $('#buildbox').textContent='⚠️ '+e.message; }
+ $('#go').disabled=false;
+}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+// light markdown → keep bold/inline-code, rely on pre-wrap for the rest
+function mdLite(t){return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/^#{1,4}\s*(.+)$/gm,'<b>$1</b>');}
+// ---------- ask the company (knowledge graph) ----------
+const ASK_SUGS=["What's happening this week?","Who should I ask about the incentive engine?","What are our biggest risks / bus factor?","Who is working on HBL/UBL payouts?"];
+function askSession(){try{const a=JSON.parse(localStorage.getItem('amp')||'null');if(a&&a.token)return{from:a.agent_id,token:a.token};}catch(e){}return admin||null;}
+async function loadKbFresh(){
+ try{const k=await api('/amp/knowledge');
+  $('#kbfresh2').innerHTML=k.enabled?`graph ${k.freshness.age_minutes==null?'':k.freshness.age_minutes+'m'} fresh · ${k.counts.p} people · ${k.counts.j} projects · ${k.counts.c} commits`:'knowledge graph not loaded';
+ }catch(e){}
+ $('#asksug').innerHTML=ASK_SUGS.map(s=>`<span onclick="$('#askq').value=this.textContent;askCompany()">${s}</span>`).join('');
+}
+let _asking2=false;
+const ASK_TIP={find_experts:'finding the right people',get_person:'reading a profile',get_activity:'scanning recent activity',search_commits:'searching commit history',get_project:'opening a project',list_projects:'listing projects',search_notes:'reading institutional notes',get_team_updates:'checking status updates'};
+function renderAsk(box,raw){
+ const ri=raw.lastIndexOf('\x1e'); let work = ri>=0 ? raw.slice(ri+1) : raw; // \x1e = show only clean final answer
+ let tool=null; work=work.replace(/\x1f([^\x1f]*)\x1f/g,(m,n)=>{tool=n||tool;return '';}); // strip progress frames
+ const ti=work.lastIndexOf('\x1f'); if(ti>=0) work=work.slice(0,ti);
+ if(work.trim()) box.innerHTML=mdLite(work);
+ else box.innerHTML=`<span class="spin"></span> 🔎 ${ASK_TIP[tool]||'searching the company graph'}…`;
+}
+let _askQ='', _askA='';
+function cleanAnswer(raw){const ri=raw.lastIndexOf('\x1e');let w=ri>=0?raw.slice(ri+1):raw;
+ w=w.replace(/\x1f[^\x1f]*\x1f/g,'');const ti=w.lastIndexOf('\x1f');if(ti>=0)w=w.slice(0,ti);return w.trim();}
+async function askCompany(qOverride,improve,reason){
+ const q=(qOverride||$('#askq').value).trim(); if(!q||_asking2)return;
+ const sess=askSession();
+ if(!sess){$('#askout').innerHTML='<div class="ab" style="color:var(--warn)">Sign in on the <a href="/">mesh client</a> first (or open Admin) so I can authenticate your question.</div>';return;}
+ _asking2=true; _askQ=q; $('#askbtn').textContent='…';
+ const fb=$('#fbbar'); if(fb)fb.remove();
+ if(!improve) $('#askout').innerHTML=`<div class="qb">${esc(q)}</div><div class="ab" id="ab2"><span class="spin"></span> consulting the company graph…</div>`;
+ else $('#ab2').innerHTML='<span class="spin"></span> re-thinking a better answer…';
+ const box=$('#ab2'); let raw='';
+ try{
+  const body={...sess,text:q}; if(improve){body.improve=true;body.reason=reason||'';}
+  const r=await fetch('/amp/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const rd=r.body.getReader(); const dec=new TextDecoder();
+  while(true){const {done,value}=await rd.read(); if(done)break;
+   raw+=dec.decode(value,{stream:true}); renderAsk(box,raw);}
+  renderAsk(box,raw); _askA=cleanAnswer(raw); askFeedbackBar();
+  if(window._speakNext){ window._speakNext=false; try{say(_askA);}catch(e){} }
+ }catch(e){box.innerHTML='<span style="color:var(--warn)">⚠️ could not reach the assistant.</span>';}
+ finally{_asking2=false; $('#askbtn').textContent='Ask ▸';}
+}
+function askFeedbackBar(){
+ const out=$('#askout'); let b=$('#fbbar'); if(b)b.remove();
+ const d=document.createElement('div'); d.id='fbbar'; d.className='fbbar';
+ d.innerHTML=`<span>Was this helpful?</span> <button class="fbb" onclick="askFeedback('up')">👍</button> <button class="fbb" onclick="askFeedback('down')">👎</button>`;
+ out.appendChild(d);
+}
+async function askFeedback(rating){
+ const sess=askSession(); if(!sess)return; const b=$('#fbbar');
+ if(rating==='up'){
+  fetch('/amp/ask/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...sess,rating:'up',question:_askQ,answer:_askA})}).catch(()=>{});
+  if(b)b.innerHTML='<span style="color:var(--ok)">✓ thanks — saved. Future answers will build on this.</span>';
+ }else{
+  const reason=prompt('What was off? (optional — helps it do better)','')||'';
+  fetch('/amp/ask/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...sess,rating:'down',question:_askQ,answer:_askA,reason})}).catch(()=>{});
+  askCompany(_askQ,true,reason);
+ }
+}
+window.askCompany=askCompany; window.askFeedback=askFeedback;
+// ---------- admin panel ----------
+let admin=JSON.parse(localStorage.getItem('ace_admin')||'null');
+function openAdmin(){el('amodal').classList.add('on');
+ if(admin){el('alogin').style.display='none';el('apanel').style.display='block';loadUsers();loadLearnings();loadTenants();}
+ else{el('alogin').style.display='block';el('apanel').style.display='none';}}
+async function adminLogin(){
+ const email=(el('aemail').value||'').trim(); const e=el('aerr'); e.textContent='';
+ if(!email.includes('@')){e.textContent='Enter a valid email';return;}
+ try{
+  const d=await api('/amp/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,name:email.split('@')[0]})});
+  if(d.status==='pending'){e.textContent='This account is pending approval (not an admin).';return;}
+  if(d.role!=='admin'){e.textContent='That account is not an admin.';return;}
+  admin={from:d.agent_id,token:d.token}; localStorage.setItem('ace_admin',JSON.stringify(admin));
+  el('alogin').style.display='none';el('apanel').style.display='block';loadUsers();loadLearnings();loadTenants();
+ }catch(err){e.textContent='Sign in failed.';}
+}
+async function loadUsers(){
+ try{
+  const d=await api('/amp/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(admin)});
+  const us=d.users||[]; el('ucount').textContent='('+us.length+')';
+  el('ulist').innerHTML=us.map(u=>`<div class="urow">
+    <div><div class="ue">${esc(u.name||u.agent_id)} ${u.role==='admin'?'<span class="rolechip">admin</span>':''}</div>
+      <div class="um">${esc(u.email||'')} · ${u.agent_id}</div></div>
+    ${u.approved? '<span class="pill ok">approved</span>' : `<button class="appbtn" onclick="approveUser('${u.agent_id}')">Approve</button>`}
+  </div>`).join('')||'<div class="um">no users</div>';
+ }catch(e){el('ulist').innerHTML='<div class="um">session expired — sign in again</div>';localStorage.removeItem('ace_admin');admin=null;}
+}
+async function approveUser(id){
+ await api('/amp/admin/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...admin,agent_id:id})});
+ loadUsers();
+}
+async function loadLearnings(){
+ try{
+  const d=await api('/amp/admin/learnings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(admin)});
+  const L=d.learnings||[]; const s=d.stats||{};
+  el('lstats').textContent=`(👍 ${s.positive||0} · 👎 ${s.negative||0} · ${s.validated||0} validated)`;
+  el('llist').innerHTML=L.map(x=>{
+    const badge=x.rating==='down'?'<span class="lb down">👎 miss</span>':(x.rating==='corrected'?'<span class="lb corr">✎ corrected</span>':'<span class="lb up">👍 validated</span>');
+    return `<div class="lrow"><div class="lmain"><div class="lq">${badge} ${esc(x.question||'')}</div>
+      ${x.reason?`<div class="lreason">✎ ${esc(x.reason)}</div>`:''}
+      <div class="la">${esc((x.answer||'').slice(0,220))}${(x.answer||'').length>220?'…':''}</div>
+      <div class="lmeta">${esc(x.agent||'')} · ${esc((x.ts||'').replace('T',' ').slice(0,16))}</div></div>
+      <button class="delx" title="remove" onclick="delLearning(${x.id})">✕</button></div>`;
+  }).join('')||'<div class="um">no feedback yet</div>';
+ }catch(e){el('llist').innerHTML='<div class="um">could not load learnings</div>';}
+}
+async function delLearning(id){
+ await api('/amp/admin/learnings/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...admin,id})});
+ loadLearnings();
+}
+async function addUser(){
+ const email=(el('nu_email').value||'').trim(); const name=(el('nu_name').value||'').trim();
+ if(!email.includes('@'))return;
+ await api('/amp/admin/adduser',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...admin,email,name})});
+ el('nu_email').value='';el('nu_name').value='';loadUsers();
+}
+async function loadTenants(){
+ try{
+  const d=await api('/amp/admin/tenants',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(admin)});
+  el('tlist').innerHTML=(d.tenants||[]).map(t=>`<div class="urow">
+    <div><div class="ue">${esc(t.name)} ${t.shared?'<span class="rolechip">shared</span>':''}</div>
+      <div class="um">tenant: ${esc(t.tenant)} · ${t.users} user(s) · graphs: ${t.knowledge?'people ✓':'people ✗'} ${t.code_knowledge?'code ✓':'code ✗'}</div></div>
+  </div>`).join('')||'<div class="um">no tenants</div>';
+ }catch(e){el('tlist').innerHTML='<div class="um">could not load tenants</div>';}
+}
+window.openAdmin=openAdmin;window.adminLogin=adminLogin;window.approveUser=approveUser;window.addUser=addUser;window.loadLearnings=loadLearnings;window.delLearning=delLearning;window.loadTenants=loadTenants;
+/* ---------- ChatGPT-style live voice orb: speaks the briefing, no transcript ---------- */
+const _synth=window.speechSynthesis; let _brief=null,_briefPlayed=false,_voices=[];
+function _loadVoices(){ if(_synth){_voices=_synth.getVoices();} }
+_loadVoices(); if(_synth)_synth.onvoiceschanged=_loadVoices;
+function pickVoice(){ return _voices.find(v=>/en-(US|GB)/.test(v.lang)&&/female|samantha|google us|zira|aria|jenny|natural/i.test(v.name))
+  ||_voices.find(v=>v.lang&&v.lang.startsWith('en'))||_voices[0]; }
+let _orbLevel=0,_orbBurst=0,_orbSpeaking=false,_orbT=0;
+let _actx=null,_analyser=null,_freq=null,_audioEl=null,_srcNode=null,_cueMode=false;
+let _listening=false,_micStream=null,_micAnalyser=null,_micFreq=null,_orbHue=278,_briefMode=false;
+/* ===== JARVIS holographic globe — rotating node-network sphere, evolving, audio-reactive ===== */
+const _jv={pts:[],nbr:[],rot:0,ax:.35,t:0,cvs:null,ctx:null,dpr:1,R:150,scan:0,
+  cx:0,cy:0,nodes:[],t0:0,estMs:12000};
+function _jvInit(){
+  const c=el('orbcanvas'); if(!c)return; _jv.cvs=c; _jv.ctx=c.getContext('2d'); _jvResize();
+  const N=340, pts=[], ga=Math.PI*(3-Math.sqrt(5));
+  for(let i=0;i<N;i++){ const y=1-(i/(N-1))*2, r=Math.sqrt(Math.max(0,1-y*y)), th=ga*i;
+    pts.push({x:Math.cos(th)*r,y,z:Math.sin(th)*r,ph:Math.random()*6.28}); }
+  _jv.pts=pts;
+  _jv.nbr=pts.map((p,i)=>pts.map((q,j)=>[j,(p.x-q.x)**2+(p.y-q.y)**2+(p.z-q.z)**2])
+    .filter(a=>a[0]!==i).sort((a,b)=>a[1]-b[1]).slice(0,5).map(a=>a[0]));
+  window.addEventListener('resize',_jvResize);
+}
+function _jvResize(){ const c=_jv.cvs; if(!c)return; const dpr=Math.min(2,window.devicePixelRatio||1); _jv.dpr=dpr;
+  const cw=c.clientWidth||420, ch=c.clientHeight||420; c.width=Math.round(cw*dpr); c.height=Math.round(ch*dpr);
+  _jv.R=Math.min(cw,ch)*0.40*dpr; _jvLayout(); }
+// ---- briefing constellation: person/feature nodes + light-threads from the core ----
+function _jvLayout(){ const c=_jv.cvs; if(!c||!_jv.nodes.length)return; const W=c.width,H=c.height;
+  _jv.cx=W/2; _jv.cy=H/2; const rx=W*0.40, ry=H*0.40, n=_jv.nodes.length;
+  _jv.nodes.forEach((nd,i)=>{ const a=(i/n)*6.2832-1.5708; nd.x=_jv.cx+Math.cos(a)*rx; nd.y=_jv.cy+Math.sin(a)*ry;
+    if(nd.el){ nd.el.style.left=(nd.x/_jv.dpr)+'px'; nd.el.style.top=(nd.y/_jv.dpr)+'px'; } }); }
+function _jvBuildNodes(people){   // accepts briefing people OR dispatch task-nodes ({name,feat,stage,n})
+  const host=el('briefnodes'); if(host)host.innerHTML='';
+  _jv.nodes=(people||[]).slice(0,8).map((p,i)=>{
+    const feat=p.feat||(p.features&&p.features[0]&&p.features[0].module)||(p.owns_modules&&p.owns_modules[0])||'';
+    const cnt=(p.commit_count!=null?p.commit_count:(p.n!=null?p.n:0));
+    const nd={name:p.name,feat,stage:p.stage||'in progress',commits:cnt,hue:250+((i*24)%95),active:false,glow:0,el:null,x:null,y:null};
+    if(host){ const d=document.createElement('div'); d.className='bnode';
+      d.innerHTML=`<span class="bn-name">${esc(nd.name)}</span>`+(feat?`<span class="bn-feat">${esc(feat)}</span>`:'')
+        +`<span class="bn-meta"><i class="bn-st">${esc(nd.stage)}</i><i class="bn-c">${nd.commits}✦</i></span>`;
+      host.appendChild(d); nd.el=d; }
+    return nd; });
+  const words=(_brief&&_brief.narration)?_brief.narration.split(/\s+/).length:130;
+  _jv.estMs=Math.max(9000,words/2.6*1000); _jvLayout();
+}
+function _jvProgress(){
+  if(_audioEl&&_audioEl.duration&&isFinite(_audioEl.duration)&&!_audioEl.paused&&_audioEl.currentTime>0)
+    return Math.min(1,_audioEl.currentTime/_audioEl.duration);
+  if(_orbSpeaking&&_jv.t0) return Math.min(1,(performance.now()-_jv.t0)/(_jv.estMs||12000));
+  return 0; }
+function _jvUpdateNodes(){ const n=_jv.nodes.length; if(!n)return;
+  if(_orbSpeaking&&_briefMode){                    // person nodes only during the briefing, not Q&A
+    const ct=(_audioEl&&!_audioEl.paused&&_audioEl.currentTime)||((performance.now()-_jv.t0)/1000);
+    const propAct=Math.max(1,Math.ceil(_jvProgress()*n));
+    _jv.nodes.forEach((nd,i)=>{
+      const on = (_cueMode && nd.cueTime!=null) ? (ct>=nd.cueTime-0.12) : (i<propAct);
+      if(on&&!nd.active){nd.active=true; nd.el&&nd.el.classList.add('on');}
+      nd.glow+=((on?1:0)-nd.glow)*0.07; }); }
+  else _jv.nodes.forEach(nd=>{ nd.glow*=0.90; if(nd.active&&nd.glow<0.03){nd.active=false; nd.el&&nd.el.classList.remove('on');} }); }
+function _jvThreads(ctx){
+  _jv.nodes.forEach(nd=>{ if(nd.glow<0.03||nd.x==null)return;
+    const mx=(_jv.cx+nd.x)/2,my=(_jv.cy+nd.y)/2,dx=nd.x-_jv.cx,dy=nd.y-_jv.cy,cpx=mx-dy*0.16,cpy=my+dx*0.16;
+    ctx.strokeStyle=`hsla(${nd.hue},92%,66%,${0.10*nd.glow})`; ctx.lineWidth=_jv.dpr;
+    ctx.beginPath(); ctx.moveTo(_jv.cx,_jv.cy); ctx.quadraticCurveTo(cpx,cpy,nd.x,nd.y); ctx.stroke();
+    for(let k=0;k<6;k++){ const t=((_jv.t*0.6+k/6+nd.hue*0.01)%1),it=1-t;
+      const px=it*it*_jv.cx+2*it*t*cpx+t*t*nd.x, py=it*it*_jv.cy+2*it*t*cpy+t*t*nd.y, a=(1-Math.abs(t-0.5)*2)*nd.glow;
+      ctx.fillStyle=`hsla(${nd.hue+t*30},100%,74%,${0.55*a})`;
+      ctx.beginPath(); ctx.arc(px,py,_jv.dpr*(1.3+2.2*a),0,6.29); ctx.fill(); }
+    ctx.fillStyle=`hsla(${nd.hue},100%,72%,${0.5*nd.glow})`;
+    ctx.beginPath(); ctx.arc(nd.x,nd.y,_jv.dpr*(3.4*nd.glow+1),0,6.29); ctx.fill(); }); }
+function _jvDraw(level){
+  const ctx=_jv.ctx; if(!ctx)return; const c=_jv.cvs, W=c.width,H=c.height,cx=W/2,cy=H/2;
+  ctx.clearRect(0,0,W,H);
+  _jv.t+=0.016; _jv.rot+=0.0035+level*0.022; _jv.ax=0.34+Math.sin(_jv.t*0.18)*0.5; _jv.scan+=0.01+level*0.03;
+  const R=_jv.R*(1+level*0.16), hue=_orbHue+Math.sin(_jv.t*0.08)*20;   // purple; cyan while listening
+  const cyr=Math.cos(_jv.rot),syr=Math.sin(_jv.rot),cxr=Math.cos(_jv.ax),sxr=Math.sin(_jv.ax);
+  const P=_jv.pts.map(p=>{ let x=p.x*cyr-p.z*syr, z=p.x*syr+p.z*cyr, y=p.y;
+    const y2=y*cxr-z*sxr, z2=y*sxr+z*cxr, per=1/(1.85-z2*0.92);
+    return {x:cx+x*R*per,y:cy+y2*R*per,z:z2,per,ph:p.ph}; });
+  ctx.globalCompositeOperation='lighter';
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.6);
+  g.addColorStop(0,`hsla(${hue+22},100%,74%,${0.30+level*0.5})`);
+  g.addColorStop(.42,`hsla(${hue},90%,55%,${0.08+level*0.22})`); g.addColorStop(1,'hsla(0,0%,0%,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,R*1.6,0,6.29); ctx.fill();
+  ctx.lineWidth=Math.max(1,_jv.dpr*0.6);
+  for(let i=0;i<P.length;i++){ const a=P[i]; for(const j of _jv.nbr[i]){ if(j<i)continue; const b=P[j];
+    const d=(a.z+b.z)/2, al=(0.10+0.26*(d*0.5+0.5))*(0.62+level*0.9);
+    ctx.strokeStyle=`hsla(${hue+d*30},96%,${60+d*16}%,${al})`;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); } }
+  P.map((p,i)=>p).sort((a,b)=>a.z-b.z).forEach(p=>{ const tw=0.6+0.4*Math.sin(_jv.t*3+p.ph), dz=p.z*0.5+0.5;
+    const rad=_jv.dpr*(0.8+dz*2.0)*(1+level*0.6), al=(0.32+dz*0.68)*tw;
+    ctx.fillStyle=`hsla(${hue+p.z*38},100%,${64+dz*22}%,${al})`;
+    ctx.beginPath(); ctx.arc(p.x,p.y,rad,0,6.29); ctx.fill(); });
+  for(let k=0;k<3;k++){ const rr=R*(1.06+k*0.15);
+    ctx.setLineDash([_jv.dpr*2.2,_jv.dpr*7]);
+    ctx.strokeStyle=`hsla(${hue+40},92%,66%,${0.16+level*0.26})`; ctx.lineWidth=_jv.dpr*(1.0-k*0.22);
+    ctx.beginPath(); ctx.ellipse(cx,cy,rr,rr*(Math.abs(Math.sin(_jv.ax))*0.85+0.08),0,0,6.29); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const sa=_jv.scan%6.283;                                        // sweeping "scan" highlight
+  ctx.strokeStyle=`hsla(${hue+50},100%,72%,${0.18+level*0.4})`; ctx.lineWidth=_jv.dpr*1.4;
+  ctx.beginPath(); ctx.ellipse(cx,cy,R*1.05,R*(Math.abs(Math.sin(_jv.ax))*0.85+0.08),0,sa,sa+0.7); ctx.stroke();
+  _jvThreads(ctx);                                   // light-threads from the core to each person node
+  ctx.globalCompositeOperation='source-over';
+}
+function _orbLoop(){ _orbT+=0.05; let lvl;
+  if(_listening&&_micAnalyser){ _micAnalyser.getByteFrequencyData(_micFreq);   // react to YOUR voice
+    let s=0; for(let i=0;i<_micFreq.length;i++)s+=_micFreq[i]; lvl=Math.min(1,(s/_micFreq.length)/55); }
+  else if(_orbSpeaking&&_analyser){ _analyser.getByteFrequencyData(_freq);
+    let s=0; for(let i=0;i<_freq.length;i++)s+=_freq[i]; lvl=Math.min(1,(s/_freq.length)/72); }
+  else lvl=(_orbSpeaking||_listening)?0.4:(0.12+0.06*Math.sin(_orbT*0.8));
+  _orbLevel+=(lvl-_orbLevel)*0.34; _jvUpdateNodes(); _jvDraw(_orbLevel);
+  requestAnimationFrame(_orbLoop); }
+_jvInit(); requestAnimationFrame(_orbLoop);
+function _setSpeaking(on,label){ _orbSpeaking=on; if(on)_jv.t0=performance.now(); if(!on&&!_listening)_orbHue=278;
+  const st=el('orbstage'),s=el('orbstatus');
+  if(st)st.classList.toggle('speaking',on);
+  if(s)s.textContent=label!==undefined?label:(on?(_briefMode?'● briefing…':'● speaking…'):'tap the core to speak with ACE'); }
+function _ensureAudio(){ if(!_actx){ const AC=window.AudioContext||window.webkitAudioContext; _actx=new AC();
+  _analyser=_actx.createAnalyser(); _analyser.fftSize=256; _freq=new Uint8Array(_analyser.frequencyBinCount); } }
+// rich 3rd-party voice → real audio + waveform-reactive orb + node cues; falls back gracefully
+function _b64ToBlob(b64,mime){ const bin=atob(b64), u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return new Blob([u],{type:mime||'audio/mpeg'}); }
+function _firstName(n){ const s=(n||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[^a-zA-Z]+/g,' ').trim().split(' ')[0];
+  return s.length>=3?s.toLowerCase():''; }
+async function _playBlob(blob){
+  const url=URL.createObjectURL(blob);
+  try{ _ensureAudio(); if(_actx.state==='suspended')await _actx.resume(); }catch(e){}
+  if(_audioEl){ try{_audioEl.pause();}catch(e){} }
+  _audioEl=new Audio(url); _audioEl.crossOrigin='anonymous';
+  try{ if(_srcNode)_srcNode.disconnect(); _srcNode=_actx.createMediaElementSource(_audioEl);
+    _srcNode.connect(_analyser); _analyser.connect(_actx.destination); }catch(e){}
+  _audioEl.onplay=()=>_setSpeaking(true);
+  _audioEl.onended=()=>{ _setSpeaking(false); URL.revokeObjectURL(url); };
+  _audioEl.onerror=()=>_setSpeaking(false);
+  try{ await _audioEl.play(); return true; }catch(e){ return false; }
+}
+async function richSpeakTimed(text){    // ElevenLabs w/ char timestamps → exact per-name node cues
+  const sess=askSession(); if(!sess) return false;
+  let d; try{ const r=await fetch('/amp/tts/timed',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({from:sess.from,token:sess.token,text})}); if(!r.ok) return false; d=await r.json(); }
+  catch(e){ return false; }
+  if(!d||!d.audio_b64) return false;
+  const full=(d.chars||[]).join('').toLowerCase(), starts=d.starts||[];
+  _jv.nodes.forEach(nd=>{ nd.cueTime=null; const key=_firstName(nd.name);
+    if(key){ const idx=full.indexOf(key); if(idx>=0 && starts[idx]!=null) nd.cueTime=starts[idx]; } });
+  _cueMode=true;
+  return _playBlob(_b64ToBlob(d.audio_b64,d.mime));
+}
+async function richSpeak(text){         // plain audio (proportional node sync)
+  const sess=askSession(); if(!sess) return false;
+  let r; try{ r=await fetch('/amp/tts',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({from:sess.from,token:sess.token,text})}); }catch(e){ return false; }
+  if(!r.ok) return false; _cueMode=false;
+  return _playBlob(await r.blob());
+}
+function speak(text){ _cueMode=false; if(!_synth||!text)return; _synth.cancel();   // browser-voice fallback
+  const u=new SpeechSynthesisUtterance(text); const v=pickVoice(); if(v)u.voice=v; u.rate=1.02; u.pitch=1.0;
+  u.onstart=()=>_setSpeaking(true); u.onboundary=()=>{_orbBurst=0.55+Math.random()*0.45;};
+  u.onend=()=>_setSpeaking(false); u.onerror=()=>_setSpeaking(false);
+  _synth.speak(u); }
+async function say(text){ if(!text)return;
+  if(await richSpeakTimed(text)) return;
+  if(await richSpeak(text)) return;
+  speak(text); }
+function stopSpeak(){ if(_synth)_synth.cancel(); if(_audioEl){try{_audioEl.pause();}catch(e){}} _setSpeaking(false); }
+function _greet(){ const h=new Date().getHours(); const g=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+  let nm=''; try{const a=JSON.parse(localStorage.getItem('amp')||'null'); if(a&&a.name)nm=', '+a.name.split(' ')[0];}catch(e){}
+  return `${g}${nm}. Here's your team briefing for today. `; }
+function playBriefing(){ if(!_brief||!_brief.narration)return; _briefPlayed=true; _briefMode=true; _orbHue=278;
+  _jvBuildNodes(_brief.people||[]); say(_greet()+_brief.narration); }
+// dispatch → globe: constellation of the assignees, spoken plan (each name cues its node)
+function _planNarration(d){
+  const ts=(d.tasks||[]).slice(0,6); if(!ts.length) return "I've drafted the plan.";
+  let s="Here's the plan. ";
+  ts.forEach(t=>{ const who=t.assignee_name||(t.assignee||'the team').replace('person:',''); s+=`${who} will handle ${t.title}. `; });
+  return s;
+}
+function dispatchGlobe(d){
+  const nodes=(d.tasks||[]).slice(0,8).map((t,i)=>({
+    name:t.assignee_name||(t.assignee||'Unassigned').replace('person:',''),
+    feat:t.title, stage:(t.skills&&t.skills[0])||'task', n:i+1 }));
+  if(!nodes.length)return;
+  _views('voice'); try{ _jvResize(); }catch(e){}
+  _jvBuildNodes(nodes); _briefMode=true; _orbHue=278;
+  say(_planNarration(d));
+}
+function toggleBriefing(){ if(_listening){ _stopMic(); return; }
+  if(_orbSpeaking){ stopSpeak(); return; }
+  // briefing may not be loaded yet if you signed in after page load — fetch it now, then speak
+  if((!_brief||!_brief.narration) && askSession()){ loadBriefing().then(()=>playBriefing()); return; }
+  playBriefing(); }
+// ---- talk to ACE: mic → transcribe → ask the company → answer through the globe ----
+function _stopMic(){ _listening=false; _orbHue=278;
+  if(_micStream){ try{_micStream.getTracks().forEach(t=>t.stop());}catch(e){} _micStream=null; }
+  const b=el('orbmic'); if(b){b.classList.remove('on'); b.textContent='🎙 Ask ACE by voice';}
+  if(!_orbSpeaking){ const s=el('orbstatus'); if(s)s.textContent='tap the core to speak with ACE'; } }
+async function listenAsk(ev){
+  if(ev)ev.stopPropagation();
+  if(_listening){ _stopMic(); return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert('Voice input needs Chrome or Edge (Web Speech API).'); return; }
+  stopSpeak();                                       // interrupt any briefing
+  try{ _ensureAudio(); if(_actx.state==='suspended')await _actx.resume();
+    _micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const src=_actx.createMediaStreamSource(_micStream);
+    _micAnalyser=_actx.createAnalyser(); _micAnalyser.fftSize=256; _micFreq=new Uint8Array(_micAnalyser.frequencyBinCount);
+    src.connect(_micAnalyser);
+  }catch(e){}
+  _listening=true; _briefMode=false; _orbHue=192;    // cyan while listening
+  const b=el('orbmic'); if(b){b.classList.add('on'); b.textContent='● listening… (tap to stop)';}
+  const st=el('orbstatus'); if(st)st.textContent='● listening…';
+  const rec=new SR(); rec.lang='en-GB'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onresult=e=>{ const t=e.results[0][0].transcript;
+    _stopMic(); _orbHue=286; const s=el('orbstatus'); if(s)s.textContent='● thinking…';
+    if(el('askq'))el('askq').value=t; window._speakNext=true; askCompany(); };
+  rec.onerror=()=>_stopMic(); rec.onend=()=>{ if(_listening)_stopMic(); };
+  try{ rec.start(); }catch(e){ _stopMic(); }
+}
+window.listenAsk=listenAsk;
+function _goto(id){ const e=el(id); if(!e)return; e.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>{ try{e.focus({preventScroll:true});}catch(_){}} ,450); }
+window._goto=_goto;
+async function loadBriefing(){
+  const sess=askSession(); const s=el('orbstatus');
+  if(!sess){ if(s)s.textContent='sign in to hear today’s briefing'; return; }
+  try{
+    const r=await fetch(`/amp/daily?agent_id=${encodeURIComponent(sess.from)}&token=${encodeURIComponent(sess.token)}`);
+    if(!r.ok){ if(s)s.textContent='briefing unavailable'; return; }
+    _brief=await r.json();
+    _jvBuildNodes(_brief.people||[]);
+    if(s)s.textContent='tap the core to speak with ACE';
+  }catch(e){ if(s)s.textContent='could not load the briefing'; }
+}
+// ---------- view switch: Dashboard / Build / Voice ----------
+function _views(v){ el('dashboard').style.display = v==='dash'?'grid':'none';
+  el('buildview').style.display = v==='build'?'block':'none';
+  el('voiceview').style.display = v==='voice'?'flex':'none';
+  document.body.classList.toggle('vbg', v==='voice');
+  document.querySelectorAll('.navtab').forEach(t=>t.classList.remove('on'));
+  const tab=el(v==='voice'?'tab-voice':v==='build'?'tab-build':'tab-dash'); if(tab)tab.classList.add('on'); }
+function showDash(){ _views('dash'); try{ stopSpeak(); }catch(e){} }
+function showBuild(){ _views('build'); try{ stopSpeak(); }catch(e){} const r=el('req'); if(r)setTimeout(()=>r.focus(),80); }
+function showVoice(){ _views('voice'); try{ _jvResize(); }catch(e){}
+  // if signed in but briefing not yet loaded (e.g. logged in after page load), fetch it so the
+  // caption flips to "tap the core…" and the globe is ready to speak on tap
+  if((!_brief||!_brief.narration) && askSession()){ loadBriefing(); }
+  else if(!_briefPlayed && _brief){ try{ playBriefing(); }catch(e){} }
+  window.scrollTo({top:0,behavior:'smooth'}); }
+window.showVoice=showVoice; window.showDash=showDash; window.showBuild=showBuild;
+function _grow(t){ t.style.height='auto'; t.style.height=Math.min(120,t.scrollHeight)+'px'; }
+function _charc(){ const r=el('req'); if(!r)return; if(r.value.length>1000)r.value=r.value.slice(0,1000);
+  const c=el('charc'); if(c)c.textContent=r.value.length; }
+function _setAvatar(){ let nm=''; try{const a=JSON.parse(localStorage.getItem('amp')||'null'); if(a){nm=a.name||a.agent_id||'';}}catch(e){}
+  const av=el('avatar'); if(av&&nm)av.textContent=ini(nm); }
+window._grow=_grow; window._charc=_charc;
+window.toggleBriefing=toggleBriefing;
+function voiceAsk(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert('Voice input needs Chrome or Edge (Web Speech API).'); return; }
+  const mic=el('micbtn'); const rec=new SR(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+  if(mic){mic.classList.add('on');mic.textContent='🔴';}
+  rec.onresult=e=>{ const t=e.results[0][0].transcript; el('askq').value=t; window._speakNext=true; askCompany(); };
+  rec.onerror=()=>{}; rec.onend=()=>{ if(mic){mic.classList.remove('on');mic.textContent='🎤';} };
+  try{rec.start();}catch(e){}
+}
+window.playBriefing=playBriefing; window.stopSpeak=stopSpeak; window.voiceAsk=voiceAsk;
+
+// ---------- galaxy starfield (twinkle + drift + shooting stars) ----------
+(function(){const c=el('stars'); if(!c)return; const x=c.getContext('2d'); let W,H,dpr,stars,shoot=null;
+ function rs(){ dpr=Math.min(2,window.devicePixelRatio||1); W=c.width=innerWidth*dpr; H=c.height=innerHeight*dpr;
+   const n=Math.min(720,Math.floor(innerWidth*innerHeight/2100)); stars=[];
+   for(let i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:(Math.random()*1.3+.25)*dpr,
+     p:Math.random()*6.28,s:Math.random()*.02+.004,h:200+Math.random()*90,br:Math.random()}); }
+ function frame(){ x.clearRect(0,0,W,H);
+   for(const s of stars){ s.p+=s.s; const a=.3+.7*(.5+.5*Math.sin(s.p));
+     x.globalAlpha=a; x.fillStyle = s.br>.85?`hsla(${s.h},85%,82%,1)`:'#eef3ff';
+     x.beginPath(); x.arc(s.x,s.y,s.r,0,6.283); x.fill();
+     if(s.r>1.1*dpr){ x.globalAlpha=a*.22; x.beginPath(); x.arc(s.x,s.y,s.r*3.2,0,6.283); x.fill(); } }
+   x.globalAlpha=1;
+   if(!shoot && Math.random()<.005){ shoot={x:Math.random()*W*.7,y:Math.random()*H*.35,
+     vx:(7+Math.random()*6)*dpr, vy:(3+Math.random()*3)*dpr, life:1}; }
+   if(shoot){ const g=x.createLinearGradient(shoot.x,shoot.y,shoot.x-shoot.vx*11,shoot.y-shoot.vy*11);
+     g.addColorStop(0,`rgba(210,190,255,${shoot.life})`); g.addColorStop(1,'transparent');
+     x.strokeStyle=g; x.lineWidth=1.5*dpr; x.beginPath(); x.moveTo(shoot.x,shoot.y);
+     x.lineTo(shoot.x-shoot.vx*11,shoot.y-shoot.vy*11); x.stroke();
+     shoot.x+=shoot.vx; shoot.y+=shoot.vy; shoot.life-=.018; if(shoot.life<=0||shoot.x>W) shoot=null; }
+   requestAnimationFrame(frame); }
+ addEventListener('resize',rs); rs(); requestAnimationFrame(frame); })();
+
+_setAvatar(); loadRoster(); loadWOs(); loadKbFresh(); loadBriefing(); loadBuildSug(); setInterval(loadRoster,8000);
+</script></body></html>

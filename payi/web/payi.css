@@ -1,0 +1,92 @@
+/* PayI design system — shared by the payer console, the watcher and the wallet.
+   Dark instrument aesthetic: near-black blue ground, hairline panels, one accent per product. */
+:root{
+  --bg:#05070c; --bg2:#080b12; --panel:#0b0f18; --panel2:#0e1320; --raise:#121827;
+  --line:#1a2231; --line2:#243044; --ink:#e8edf6; --muted:#8b97ad; --dim:#5a6679; --faint:#2b3547;
+  --payi:#56d9fb; --palm:#3fe7ab; --voice:#a78bfa; --amber:#f6b44a; --red:#ff6b6b; --ok:#3fe7ab;
+  --accent:var(--payi);
+  --glow:0 0 0 1px color-mix(in oklab,var(--accent) 45%,transparent),0 0 28px -6px color-mix(in oklab,var(--accent) 60%,transparent);
+  --ui:"Geist","Inter",system-ui,sans-serif; --mono:"Geist Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:14px; --r2:10px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.5 var(--ui);-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1200px 700px at 70% -10%,color-mix(in oklab,var(--accent) 7%,transparent),transparent 60%),
+                   radial-gradient(900px 600px at -10% 110%,color-mix(in oklab,var(--voice) 5%,transparent),transparent 60%);}
+button{font:inherit;color:inherit}
+.mono{font-family:var(--mono);font-feature-settings:"zero" 1}
+.num{font-variant-numeric:tabular-nums}
+.label{font:500 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.muted{color:var(--muted)} .dim{color:var(--dim)}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;position:relative;flex:none;
+  background:radial-gradient(circle at 50% 40%,color-mix(in oklab,var(--accent) 45%,#000) 0,#070a10 70%);box-shadow:var(--glow)}
+.mark::after{content:"";width:12px;height:12px;border-radius:50%;border:1.5px solid var(--accent);box-shadow:0 0 12px var(--accent)}
+.brand b{font:650 17px/1 var(--ui);letter-spacing:-.01em}
+.brand b i{font-style:normal;color:var(--accent)}
+.brand small{display:block;font:500 10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+
+/* chrome */
+.topbar{height:60px;display:flex;align-items:center;gap:18px;padding:0 22px;border-bottom:1px solid var(--line);
+  background:color-mix(in oklab,var(--bg) 82%,transparent);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20}
+.spacer{flex:1}
+.panel{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);min-width:0;position:relative}
+.panel-h{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
+.panel-b{padding:14px 16px 16px}
+
+.chip{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--line2);
+  background:var(--panel);font:500 12px/1 var(--ui);color:var(--muted);white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.chip.on .dot{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.chip.warn .dot{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.chip b{color:var(--ink);font-weight:550}
+
+.btn{height:38px;padding:0 16px;border-radius:10px;border:1px solid var(--line2);background:var(--raise);cursor:pointer;
+  font:550 13px/1 var(--ui);display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.15s;white-space:nowrap}
+.btn:hover{border-color:var(--faint);background:#161d2e}
+.btn.primary{background:var(--accent);border-color:transparent;color:#041018}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.sm{height:30px;padding:0 11px;font-size:12px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:16px;height:16px}
+
+.seg{display:flex;padding:3px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);gap:3px}
+.seg button{border:0;background:transparent;height:34px;padding:0 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:9px;
+  font:550 13px/1 var(--ui);color:var(--muted);transition:.15s}
+.seg button small{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.seg button[aria-pressed=true]{background:var(--raise);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line2)}
+.seg button[aria-pressed=true] .pdot{box-shadow:0 0 10px currentColor}
+.pdot{width:8px;height:8px;border-radius:50%;background:currentColor}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font:600 11px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.pill.green{background:color-mix(in oklab,var(--ok) 14%,transparent);color:var(--ok)}
+.pill.amber{background:color-mix(in oklab,var(--amber) 16%,transparent);color:var(--amber)}
+.pill.red{background:color-mix(in oklab,var(--red) 16%,transparent);color:var(--red)}
+.pill.voice{background:color-mix(in oklab,var(--voice) 16%,transparent);color:var(--voice)}
+.pill.palm{background:color-mix(in oklab,var(--palm) 14%,transparent);color:var(--palm)}
+.pill.payi{background:color-mix(in oklab,var(--payi) 14%,transparent);color:var(--payi)}
+
+.hex{font:400 11.5px/1.55 var(--mono);color:#9fb0c8;word-break:break-all;letter-spacing:.02em}
+.hex .h0{color:var(--accent)}
+.check{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--ui)}
+.check.y{color:var(--ok)} .check.n{color:var(--red)}
+.check svg{width:14px;height:14px}
+
+.scroll{overflow:auto;scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+.bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--accent);transition:width .6s}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;transition:.25s;z-index:60;
+  background:var(--raise);border:1px solid var(--line2);border-radius:12px;padding:11px 16px;font-weight:500;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rise{animation:rise .35s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

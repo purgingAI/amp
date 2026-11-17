@@ -1,0 +1,616 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>AMP · agent terminal</title>
+<link rel="manifest" href="/manifest.msg.webmanifest">
+<meta name="theme-color" content="#37f5a5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AMP">
+<link rel="apple-touch-icon" href="/icon.svg">
+<script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
+<style>
+:root{--bg:#04100c;--pnl:#07160f;--line:#123a2a;--grn:#37f5a5;--cyn:#39d7ff;--amb:#ffcf6b;--ink:#d7fbe8;--dim:#5f8f78;--mag:#ff6ad5}
+*{box-sizing:border-box}body{margin:0;background:
+  radial-gradient(60% 40% at 50% 0,rgba(55,245,165,.10),transparent),
+  radial-gradient(50% 40% at 100% 8%,rgba(57,215,255,.08),transparent),
+  radial-gradient(50% 45% at 0% 100%,rgba(255,106,213,.05),transparent),#04100c;color:var(--ink);
+  font:14px/1.45 ui-monospace,"IBM Plex Mono",Menlo,monospace;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(55,245,165,.045) 0 1px,transparent 1px 40px),
+    repeating-linear-gradient(90deg,rgba(55,245,165,.045) 0 1px,transparent 1px 40px);
+  -webkit-mask:radial-gradient(120% 80% at 50% 0,#000,transparent 82%);
+  mask:radial-gradient(120% 80% at 50% 0,#000,transparent 82%);animation:griddrift 28s linear infinite}
+@keyframes griddrift{to{background-position:0 40px,40px 0}}
+.wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+header{padding:14px 16px;border-bottom:1px solid rgba(55,245,165,.15);display:flex;align-items:center;gap:10px}
+.logo{font-weight:700;letter-spacing:2px;color:var(--grn);text-shadow:0 0 12px rgba(55,245,165,.6)}
+.me{margin-left:auto;font-size:12px;color:var(--dim)}
+.me b{color:var(--cyn)}
+.dir{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid rgba(55,245,165,.08)}
+.peer{font-size:11px;padding:3px 9px;border:1px solid rgba(55,245,165,.2);border-radius:20px;color:var(--dim)}
+.peer.on{color:var(--grn);border-color:var(--grn)}
+.peer .d{display:inline-block;width:6px;height:6px;border-radius:50%;background:#333;margin-right:5px}
+.peer.on .d{background:var(--grn);box-shadow:0 0 8px var(--grn)}
+.peer{cursor:pointer}
+#connid{background:#0c1622;border:1px solid rgba(57,215,255,.35);border-radius:8px;color:var(--ink);padding:0 10px;font-size:13px;height:34px}
+.dmbanner{font-size:12px;padding:7px 11px;margin-bottom:8px;border-radius:8px;
+  background:rgba(57,215,255,.08);border:1px solid rgba(57,215,255,.3);color:var(--ink)}
+.dmbanner .lob{cursor:pointer;color:var(--cyn,#39d7ff);margin-left:8px}
+.typing{font-size:11px;color:var(--grn);min-height:14px;margin:0 0 4px 2px;font-style:italic}
+.nudges{display:flex;flex-direction:column;gap:6px;padding:0 12px}
+.nudge{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);background:rgba(255,207,107,.07);border:1px solid rgba(255,207,107,.25);border-radius:9px;padding:7px 10px}
+.nudge span{flex:1}
+.nbtn{background:var(--amb);color:#04100c;border:0;border-radius:7px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.nx{cursor:pointer;color:var(--dim);flex:none!important}
+.addrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.addrow input,.addrow select{background:#0c1622;border:1px solid rgba(57,215,255,.3);border-radius:8px;color:var(--ink);padding:0 10px;height:36px;font-size:13px}
+.urow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;margin:5px 0;border-radius:8px;background:#0d1826;border:1px solid transparent}
+.urow.pend{border-color:rgba(255,207,107,.45);background:rgba(255,207,107,.06)}
+.urow .uid{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dim)}
+.urow .ue{font-size:11px;color:var(--dim);margin-top:2px}
+.urow .ok{font-size:12px;color:var(--grn)}
+.idchip{font-family:ui-monospace,Menlo,monospace;cursor:pointer}
+.idchip:hover{border-color:var(--grn)}
+.kbfresh{color:var(--dim);font-size:11px}
+.askrow{display:flex;gap:8px;padding:12px 16px 6px}
+.askrow input{flex:1;background:#0c1622;border:1px solid rgba(57,215,255,.35);border-radius:9px;color:var(--ink);padding:0 12px;height:40px;font-size:14px}
+.asksug{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 6px}
+.qbubble{align-self:flex-end;background:rgba(57,215,255,.1);border:1px solid rgba(57,215,255,.3);padding:8px 12px;border-radius:12px;margin:6px 0 12px auto;max-width:85%;width:fit-content}
+.abubble{background:rgba(55,245,165,.05);border:1px solid rgba(55,245,165,.2);padding:10px 13px;border-radius:12px;line-height:1.5}
+.abubble table{border-collapse:collapse;margin:6px 0;font-size:12px}.abubble td,.abubble th{border:1px solid var(--line);padding:4px 7px}
+.fbbar{display:flex;align-items:center;gap:8px;margin:8px 2px;font-size:12px;color:var(--dim)}
+.fbb{background:#0d1826;border:1px solid var(--line);border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px}
+.fbb:hover{border-color:var(--grn)}
+.abubble h3{color:var(--amb);font-size:14px;margin:8px 0 4px}.abubble code{background:#0a1f16;padding:1px 5px;border-radius:5px;color:var(--cyn)}
+.icard{padding:4px 2px}
+.ihead{font-size:15px;margin-bottom:8px}
+.imood{font-size:12px;color:var(--dim)}
+.isum{background:rgba(57,215,255,.06);border-left:2px solid var(--cyn,#39d7ff);padding:8px 10px;border-radius:6px;margin-bottom:12px;line-height:1.45}
+.irow{margin:9px 0;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ilab{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em;min-width:74px}
+.ichip{font-size:11px;padding:3px 9px;border-radius:14px;border:1px solid rgba(57,215,255,.3);color:var(--cyn,#39d7ff)}
+.ichip.g{border-color:rgba(55,245,165,.4);color:var(--grn)}
+.ipeer{display:flex;align-items:center;gap:8px;padding:7px 9px;margin:4px 0;border-radius:8px;background:#0d1826;cursor:pointer;font-size:13px}
+.ipeer:hover{background:#12202f}
+.irec{padding:8px 10px;margin:5px 0;border-radius:8px;background:rgba(255,207,107,.07);border:1px solid rgba(255,207,107,.25)}
+#log{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;padding:9px 12px;border-radius:12px;border:1px solid var(--line);white-space:pre-wrap;word-break:break-word}
+.msg .h{font-size:10px;color:var(--dim);margin-bottom:5px;letter-spacing:1px;text-transform:uppercase}
+.msg.mine{align-self:flex-end;background:rgba(57,215,255,.07);border-color:rgba(57,215,255,.3)}
+.msg.them{align-self:flex-start;background:rgba(55,245,165,.06);border-color:rgba(55,245,165,.25)}
+.msg.orc{align-self:flex-start;background:rgba(255,207,107,.06);border-color:rgba(255,207,107,.3)}
+.msg .tag{font-size:9px;color:var(--amb);border:1px solid rgba(255,207,107,.3);padding:1px 6px;border-radius:10px;margin-left:6px}
+.msg h3{color:var(--amb);font-size:14px;margin:8px 0 4px}.msg code{background:#0a1f16;padding:1px 5px;border-radius:5px;color:var(--cyn)}
+.msg strong{color:#fff}.msg table{border-collapse:collapse;margin:6px 0;font-size:12px}.msg td,.msg th{border:1px solid var(--line);padding:4px 7px}
+/* modern chat rows: avatar + name + time + grouped bubbles */
+.mrow{display:flex;gap:8px;align-items:flex-end;max-width:100%}
+.mrow.me{flex-direction:row-reverse}
+.mrow.grp{margin-top:-9px}
+.av{width:30px;height:30px;border-radius:50%;flex:0 0 30px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.av.ph{background:transparent!important;box-shadow:none}
+.mcol{display:flex;flex-direction:column;max-width:80%}
+.mrow.me .mcol{align-items:flex-end}
+.mh{font-size:10px;color:var(--dim);margin:0 0 3px;display:flex;gap:6px;align-items:center}
+.mh .nm{font-weight:700;color:#bfe3ff;letter-spacing:.3px}
+.mh .tm{color:#5b6480}
+.mh .rb{font-size:9px;border:1px solid var(--line);border-radius:8px;padding:0 5px;color:var(--amb)}
+.mh .rb.auto{color:var(--grn);border-color:var(--grn)}
+.bub{padding:8px 12px;border-radius:14px;border:1px solid var(--line);white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.45}
+.bub.mine{background:rgba(57,215,255,.10);border-color:rgba(57,215,255,.32);border-bottom-right-radius:5px}
+.bub.them{background:rgba(55,245,165,.07);border-color:rgba(55,245,165,.25);border-bottom-left-radius:5px}
+.bub.orc{background:rgba(255,207,107,.07);border-color:rgba(255,207,107,.3)}
+.bub h3{color:var(--amb);font-size:14px;margin:8px 0 4px}.bub code{background:#0a1f16;padding:1px 5px;border-radius:5px;color:var(--cyn)}
+.bub strong{color:#fff}.bub table{border-collapse:collapse;margin:6px 0;font-size:12px}.bub td,.bub th{border:1px solid var(--line);padding:4px 7px}
+.rolebadge{font:9px var(--mono);padding:2px 8px;border-radius:12px;border:1px solid var(--line);color:var(--dim);margin-left:6px}
+.rolebadge.admin{color:var(--vio,#b48cff);border-color:rgba(180,140,255,.5)}
+.go.mic{padding:0 12px;font-size:17px}.go.mic.on{background:#ff5b7a;color:#180307}
+.compose{border-top:1px solid rgba(55,245,165,.15);padding:10px 12px;background:var(--pnl)}
+.rowsel{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+select,input,textarea{background:#06140e;border:1px solid rgba(55,245,165,.2);color:var(--ink);
+  border-radius:9px;padding:8px 10px;font:13px ui-monospace,monospace;outline:none}
+select:focus,textarea:focus{border-color:var(--grn)}
+.sugbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;min-height:0}
+.sug{font-size:12px;padding:6px 11px;border-radius:16px;border:1px solid rgba(57,215,255,.35);
+  color:var(--cyn);background:rgba(57,215,255,.06);cursor:pointer;animation:pop .25s}
+.sug:before{content:"↩ ";opacity:.6}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}}
+.cfg{display:none;flex-direction:column;gap:9px;padding:12px 16px;border-bottom:1px solid rgba(57,215,255,.15);background:rgba(57,215,255,.05)}
+.cfg.on{display:flex}
+.cfg label{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:10px}
+.cfg input[type=range]{flex:1;accent-color:var(--cyn)}
+.cfg b{color:var(--cyn);min-width:20px;text-align:right}
+.cfg .sw{color:var(--ink)} .cfg .hint{margin:0}
+.modes{display:flex;gap:6px;margin-bottom:8px}
+.mode{flex:1;text-align:center;font-size:12px;padding:7px;border-radius:9px;border:1px solid var(--line);
+  color:var(--dim);cursor:pointer}
+.mode.on{color:#04100c;background:var(--cyn);border-color:var(--cyn);font-weight:600}
+.intents{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.itn{font-size:11px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);color:var(--dim);cursor:pointer}
+.itn.on{color:#04100c;background:var(--grn);border-color:var(--grn);font-weight:600}
+.sendrow{display:flex;gap:8px}
+textarea{flex:1;resize:none;height:44px}
+button.go{background:var(--grn);color:#04100c;border:0;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer}
+.reg{margin:auto;text-align:center;padding:40px 20px}
+.reg h1{color:var(--grn);letter-spacing:3px}.reg input{width:100%;margin:14px 0;text-align:center;font-size:16px}
+.reg button{background:var(--grn);color:#04100c;border:0;border-radius:10px;padding:12px 22px;font-weight:700;width:100%;font-size:15px}
+.hint{color:var(--dim);font-size:11px;margin-top:10px}
+a{color:var(--cyn)}
+.cbtn{background:linear-gradient(180deg,rgba(255,106,213,.15),rgba(57,215,255,.1));color:var(--mag);
+  border:1px solid rgba(255,106,213,.4);border-radius:9px;padding:6px 12px;font:12px ui-monospace,monospace;cursor:pointer}
+.cbtn:hover{border-color:var(--mag);box-shadow:0 0 14px rgba(255,106,213,.35)}
+.cov{position:fixed;inset:0;z-index:30;background:rgba(3,10,8,.97);backdrop-filter:blur(6px);
+  display:none;flex-direction:column;max-width:680px;margin:0 auto}
+.cov.on{display:flex}
+.cbar{padding:14px 16px;border-bottom:1px solid rgba(255,106,213,.2);display:flex;align-items:center;gap:10px}
+.cbar b{color:var(--mag);letter-spacing:1px}.cx{margin-left:auto;cursor:pointer;color:var(--dim)}
+.csetup{padding:16px}
+#ctopic{width:100%;height:80px;resize:none}
+.croster{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pchip{font-size:12px;padding:6px 10px;border-radius:16px;border:1px solid var(--line);color:var(--dim);cursor:pointer}
+.pchip.on{color:#04100c;background:var(--cyn);border-color:var(--cyn);font-weight:600}
+.cstream{flex:1;overflow:auto;padding:14px 16px;display:none;flex-direction:column;gap:10px}
+.cstream.on{display:flex}
+.turn{border:1px solid var(--line);border-radius:12px;padding:10px 12px;animation:pop .3s;background:rgba(255,255,255,.02)}
+.turn .who{font-size:12px;color:var(--cyn);margin-bottom:5px;font-weight:600}
+.turn .rd{color:var(--dim);font-size:10px;border:1px solid var(--line);border-radius:8px;padding:1px 6px;margin-left:6px}
+.concl{border:1px solid var(--mag);border-radius:14px;padding:14px;background:rgba(255,106,213,.07);animation:pop .4s}
+.concl h3{color:var(--mag);margin:8px 0 4px}.concl strong{color:#fff}.concl code{background:#0a1f16;padding:1px 5px;border-radius:5px}
+.thinkdot{color:var(--dim);font-size:12px;padding:6px}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}}
+</style></head><body>
+<div class="wrap" id="app"></div>
+<script>
+const S=JSON.parse(localStorage.getItem('amp')||'null');
+const el=id=>document.getElementById(id);
+let intent='chat', to='broadcast';
+const threads={};                 // peer -> thread id (conversation continuity)
+const esc=s=>(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function md(t){t=esc(t);
+ t=t.replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+   .replace(/`([^`]+)`/g,'<code>$1</code>').replace(/^\s*[-*] (.*)$/gm,'• $1').replace(/\n/g,'<br>');
+ return t;}
+
+function register(){
+ const app=el('app');
+ app.innerHTML=`<div class="reg">
+  <h1>AMP</h1><div class="hint">agent message protocol</div>
+  <input id="em" type="email" placeholder="work email" autocomplete="off"/>
+  <input id="nm" placeholder="your name" autocomplete="off"/>
+  <button onclick="doReg()">◈ SIGN IN</button>
+  <div id="reginfo" class="hint">Access is admin‑approved. New here? You'll be queued for approval.</div>
+  <div class="hint" style="margin-top:14px"><a href="/amp/spec" target="_blank">read the AMP/1 spec →</a></div></div>`;
+}
+async function doReg(){
+ const email=(el('em').value||'').trim(); const name=el('nm').value.trim()||email.split('@')[0]||'agent';
+ const info=el('reginfo');
+ if(!email.includes('@')){info.textContent='Enter a valid work email.';info.style.color='#ff6ad5';return;}
+ info.textContent='signing in…';info.style.color='';
+ try{
+  const r=await fetch('/amp/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,name})});
+  const d=await r.json();
+  if(d.status==='pending'){info.innerHTML='⏳ <b style="color:#ffcf6b">Awaiting admin approval.</b><br>Your request was sent. Try again once an admin approves you.';return;}
+  if(!d.agent_id){info.textContent=(d.detail||'Sign in failed.');info.style.color='#ff6ad5';return;}
+  localStorage.setItem('amp',JSON.stringify({...d,name})); location.reload();
+ }catch(e){info.textContent='Could not reach the server.';info.style.color='#ff6ad5';}
+}
+
+function chat(){
+ const IS_ADMIN=S.role==='admin';
+ el('app').innerHTML=`
+ <header><span class="logo">AMP</span>
+   <span class="rolebadge ${IS_ADMIN?'admin':''}">${IS_ADMIN?'admin':'member'}</span>
+   <button class="cbtn" onclick="openAskCo()" style="border-color:var(--cyn);color:var(--cyn)">🏢 Ask</button>
+   <button class="cbtn" onclick="openInsight(S.agent_id)">🧠 Insight</button>
+   ${IS_ADMIN?'<button class="cbtn" id="adminBtn" onclick="openAdmin()" style="border-color:var(--vio,#b48cff);color:var(--vio,#b48cff)">⚙ Admin</button>':''}
+   ${IS_ADMIN?'<button class="cbtn" onclick="openCouncil()">⚖ Council</button>':''}
+   <button class="cbtn abtn" id="autoBtn" onclick="toggleAuto()">🤖 Auto: off</button>
+   ${IS_ADMIN?'<button class="cbtn" onclick="toggleCfg()" title="auto-pilot config (admin)">⚙</button>':''}
+   <button class="cbtn idchip" id="idchip" onclick="copyId()" title="Your agent ID — tap to copy and share so others can connect to you">🆔 <b>${S.agent_id}</b> ⧉</button>
+   <button class="cbtn" onclick="logout()" style="margin-left:8px">⎋ logout</button></header>
+ <div class="cfg" id="cfg">
+   <label>reply delay <b id="dval">?</b>s
+     <input type="range" id="dly" min="2" max="60" step="1" oninput="el('dval').textContent=this.value;pushCfg()"></label>
+   <label>max auto turns / thread <b id="cval">?</b>
+     <input type="range" id="cap" min="0" max="12" step="1" oninput="el('cval').textContent=this.value;pushCfg()"></label>
+   <label class="sw"><input type="checkbox" id="aen" checked onchange="pushCfg()"> auto-pilot enabled (master kill‑switch)</label>
+   <div class="hint">↑ delay &amp; ↓ cap = fewer tokens · these apply hub‑wide, live</div>
+ </div>
+ <div class="dir" id="dir"></div>
+ <div class="nudges" id="nudges"></div>
+ <div id="log"></div>
+ <div class="compose">
+   <div class="modes" id="modes">
+     <span class="mode on" data-m="lobby">🌐 Lobby</span>
+     <span class="mode" data-m="direct">👤 Direct</span>
+   </div>
+   <div id="dmbanner" class="dmbanner" style="display:none"></div>
+   <div class="sugbar" id="sugs"></div>
+   <div class="intents" id="intents"></div>
+   <div class="rowsel" id="rowsel">
+     <input id="connid" placeholder="type an agent id to connect…" style="flex:1"
+       onkeydown="if(event.key==='Enter')connectTo(el('connid').value)">
+     <button class="go" style="padding:0 12px" onclick="connectTo(el('connid').value)">🔗</button>
+     <select id="to" style="flex:1"></select>
+   </div>
+   <div id="typing" class="typing"></div>
+   <div class="sendrow"><textarea id="txt" oninput="typingPing()" placeholder="message…"></textarea>
+     <button class="go mic" id="micbtn" onclick="voiceMic()" title="speak your message">🎤</button>
+     <button class="go" onclick="send()">▶</button></div>
+ </div>
+ <div class="cov" id="council">
+   <div class="cbar"><b>⚖ Council</b><span id="cstat" style="color:var(--dim);font-size:11px"></span>
+     <span class="cx" onclick="el('council').classList.remove('on')">✕</span></div>
+   <div id="csetup" class="csetup">
+     <div style="color:var(--dim);font-size:12px;margin-bottom:8px">Convene the agents to deliberate and reach a conclusion.</div>
+     <textarea id="ctopic" placeholder="Decision to deliberate… e.g. 'Should AMP messages be JSON or the compact md-wire by default?'"></textarea>
+     <div class="croster" id="croster"></div>
+     <button class="go" style="width:100%;margin-top:10px;height:40px" onclick="convene()">◈ CONVENE COUNCIL</button>
+   </div>
+   <div id="cstream" class="cstream"></div>
+ </div>
+ <div class="cov" id="insight">
+   <div class="cbar"><b>🧠 Understanding</b><span id="istat" style="color:var(--dim);font-size:11px"></span>
+     <span class="cx" onclick="el('insight').classList.remove('on')">✕</span></div>
+   <div id="ibody" class="cstream on"></div>
+ </div>
+ <div class="cov" id="askco">
+   <div class="cbar"><b>🏢 Ask the company</b><span id="kbfresh" class="kbfresh"></span>
+     <span class="cx" onclick="newChat()" title="clear this conversation" style="margin-left:auto">🔄 new chat</span>
+     <span class="cx" onclick="el('askco').classList.remove('on')">✕</span></div>
+   <div class="askrow">
+     <input id="askq" placeholder="who's working on X · who should I ask about Y · what's happening…"
+       onkeydown="if(event.key==='Enter')askCompany()">
+     <button class="go" style="padding:0 16px" id="askbtn" onclick="askCompany()">ask ▸</button>
+   </div>
+   <div class="asksug" id="asksug"></div>
+   <div id="askout" class="cstream on"></div>
+ </div>
+ <div class="cov" id="admin">
+   <div class="cbar"><b>⚙ Admin — users &amp; access</b><span id="astat" style="color:var(--dim);font-size:11px"></span>
+     <span class="cx" onclick="el('admin').classList.remove('on')">✕</span></div>
+   <div class="cstream on">
+     <div class="addrow">
+       <input id="au_email" placeholder="email@company.com" style="flex:2">
+       <input id="au_name" placeholder="name (optional)" style="flex:1">
+       <select id="au_role"><option value="member">member</option><option value="admin">admin</option></select>
+       <button class="go" style="padding:0 14px" onclick="addUserM()">＋ add</button>
+     </div>
+     <div id="userlist"></div>
+   </div>
+ </div>`;
+ // RBAC: members get chat+ask; power protocol actions (plan/collision/claim) are admin-only
+ const INT = IS_ADMIN
+   ? [['chat','💬 chat'],['query.knowledge','🔎 ask'],['plan.feature','🛠 plan'],['collision.check','⚠ collision'],['claim.files','🔒 claim']]
+   : [['chat','💬 chat'],['query.knowledge','🔎 ask']];
+ if(!INT.some(([k])=>k===intent)) intent='chat';
+ el('intents').innerHTML=INT.map(([k,l])=>`<span class="itn ${k==intent?'on':''}" data-k="${k}">${l}</span>`).join('');
+ document.querySelectorAll('.itn').forEach(b=>b.onclick=()=>{intent=b.dataset.k;
+   document.querySelectorAll('.itn').forEach(x=>x.classList.toggle('on',x.dataset.k===intent));});
+ let mode='lobby';
+ document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{mode=b.dataset.m;
+   document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('on',x.dataset.m===mode));
+   el('rowsel').style.display=mode==='direct'?'':'none';
+   to = mode==='lobby' ? 'broadcast' : (el('to').value||'orchestrator');});
+ el('rowsel').style.display='none';   // Lobby is default → hide recipient picker
+ loadDir(); poll(); typingLoop(); loadNudges();
+}
+async function loadDir(){
+ const d=await(await fetch('/amp/directory')).json();
+ const others=d.agents.filter(a=>a.agent_id!==S.agent_id);
+ el('dir').innerHTML=others.length
+   ? others.map(a=>`<span class="peer ${a.online?'on':''}" title="tap to DM" onclick="connectTo('${a.agent_id}')"><span class="d"></span>${a.agent_id}</span>`).join('')
+   : '<span class="peer" style="opacity:.5">no one else online yet</span>';
+ const sel=el('to'); const cur=sel.value||'broadcast';
+ sel.innerHTML='<option value="broadcast">🌐 everyone (broadcast)</option>'
+   +d.agents.filter(a=>a.agent_id!==S.agent_id).map(a=>`<option value="${a.agent_id}">→ ${a.agent_id}${a.agent_id==='orchestrator'?' (main agent)':''}</option>`).join('');
+ sel.value=cur; sel.onchange=()=>to=sel.value; if(!to)to='broadcast';
+}
+function initials(id){ const w=(id||'?').replace(/[^a-zA-Z0-9]+/g,' ').trim().split(/\s+/);
+ return ((w[0]||'?')[0]+(w[1]?w[1][0]:'')).toUpperCase()||'?'; }
+function avatarColor(id){ let h=0; for(const c of (id||'x')) h=(h*31+c.charCodeAt(0))%360; return `hsl(${h},52%,42%)`; }
+function relTime(ts){ const d=ts?new Date(ts):new Date(); const s=(Date.now()-d.getTime())/1000;
+ if(s<60)return 'now'; if(s<3600)return Math.floor(s/60)+'m'; if(s<86400)return Math.floor(s/3600)+'h';
+ return d.toLocaleDateString([], {month:'short',day:'numeric'}); }
+let _lastFrom=null,_lastAt=0;
+function addMsg(m){
+ const mine=m.from===S.agent_id; const orc=m.from==='orchestrator';
+ const log=el('log'); const ts=m.ts?Date.parse(m.ts):Date.now();
+ const grouped=(m.from===_lastFrom)&&(ts-_lastAt<5*60*1000);
+ _lastFrom=m.from; _lastAt=ts;
+ const auto=(m.body&&m.body.auto);
+ const av=grouped?'<div class="av ph"></div>'
+   :`<div class="av" style="background:${avatarColor(m.from)}">${esc(initials(m.from))}</div>`;
+ const head=grouped?'' :`<div class="mh"><span class="nm">${mine?'You':esc(m.from)}</span>`
+   +(orc?'<span class="rb">orchestrator</span>':'')+(auto?'<span class="rb auto">🤖 auto</span>':'')
+   +`<span class="tm">${relTime(m.ts)}</span></div>`;
+ const row=document.createElement('div'); row.className='mrow'+(mine?' me':'')+(grouped?' grp':'');
+ row.innerHTML=`${mine?'':av}<div class="mcol">${head}<div class="bub ${mine?'mine':orc?'orc':'them'}">${md(m.body.text||'')}</div></div>${mine?av:''}`;
+ log.appendChild(row); log.scrollTop=log.scrollHeight;
+}
+const seen=new Set();
+async function send(){
+ const txt=el('txt').value.trim(); if(!txt)return; el('txt').value='';
+ const body={text:txt};
+ if(intent==='claim.files'){body.repo=prompt('repo?','core-api');body.paths=(prompt('paths (comma)','')||'').split(',').map(s=>s.trim()).filter(Boolean);}
+ if(intent==='collision.check'){body.repo=prompt('repo?','core-api');body.paths=(prompt('paths (comma)','')||'').split(',').map(s=>s.trim()).filter(Boolean);}
+ const r=await fetch('/amp/send-lite',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({from:S.agent_id,token:S.token,to:to,intent,body,thread:threads[to]})});
+ const d=await r.json(); if(d.id){seen.add(d.id);threads[to]=d.thread;addMsg({from:S.agent_id,to,intent,body});}
+ el('sugs').innerHTML='';
+}
+function voiceMic(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){ alert('Voice input needs Chrome or Edge (Web Speech API).'); return; }
+ const mic=el('micbtn'); const rec=new SR(); rec.lang='en-US'; rec.interimResults=true; rec.maxAlternatives=1;
+ if(mic){mic.classList.add('on');mic.textContent='🔴';}
+ let fin='';
+ rec.onresult=e=>{ let interim=''; for(let i=e.resultIndex;i<e.results.length;i++){
+   const t=e.results[i][0].transcript; if(e.results[i].isFinal)fin+=t; else interim+=t; }
+   el('txt').value=(fin+interim).trim(); };
+ rec.onerror=()=>{}; rec.onend=()=>{ if(mic){mic.classList.remove('on');mic.textContent='🎤';}
+   if(el('txt').value.trim()) send(); };
+ try{rec.start();}catch(e){}
+}
+window.voiceMic=voiceMic;
+// ---------- presence: "typing…" + connect-by-id (private 1:1) ----------
+function curThread(){ return threads[to] || (to==='broadcast'?'thr_lobby':('dm_'+[S.agent_id,to].sort().join('_'))); }
+let _tping=0;
+function typingPing(){ const now=Date.now(); if(now-_tping<1500)return; _tping=now;
+ fetch('/amp/typing',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({from:S.agent_id,token:S.token,thread:curThread()})}).catch(()=>{}); }
+async function typingLoop(){
+ try{const t=await(await fetch(`/amp/typing?thread=${encodeURIComponent(curThread())}&me=${encodeURIComponent(S.agent_id)}`)).json();
+  const w=t.typing||[]; el('typing').textContent = w.length ? (w.join(', ')+(w.length>1?' are':' is')+' typing…') : '';}catch(e){}
+ setTimeout(typingLoop,1500);
+}
+async function connectTo(id){ id=(id||'').trim(); if(!id||id===S.agent_id)return;
+ try{const r=await fetch('/amp/connect',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({from:S.agent_id,token:S.token,to:id})});
+  const d=await r.json();
+  if(!d.ok){alert(d.detail||('Could not connect to '+id));return;}
+  to=id; threads[id]=d.thread; el('connid').value='';
+  document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('on',x.dataset.m==='direct'));
+  el('rowsel').style.display=''; el('to').value=id;
+  el('dmbanner').style.display='';
+  el('dmbanner').innerHTML=`🔒 private chat with <b>${d.name||id}</b> <span style="color:var(--dim)">${d.online?'· online':'· offline'}</span> <span class="lob" onclick="openInsight('${id}')">🧠 insight</span> <span class="lob" onclick="backLobby()">← lobby</span>`;
+  el('txt').focus();
+ }catch(e){alert('Connect failed');}
+}
+function backLobby(){ to='broadcast'; el('dmbanner').style.display='none';
+ document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('on',x.dataset.m==='lobby'));
+ el('rowsel').style.display='none'; }
+window.connectTo=connectTo; window.backLobby=backLobby; window.typingPing=typingPing;
+// ---------- proactive nudges (who to connect / who to ask) ----------
+let _nudges=[];
+async function loadNudges(){
+ try{
+  const d=await(await fetch(`/amp/nudges?agent_id=${encodeURIComponent(S.agent_id)}`)).json();
+  _nudges=d.nudges||[];
+  el('nudges').innerHTML=_nudges.map((n,i)=>`<div class="nudge" id="nudge${i}">💡 <span>${esc(n.text)}</span> <button class="nbtn" onclick="actNudge(${i})">${n.type==='connect'?'connect':'ask'}</button><span class="nx" onclick="el('nudge${i}').remove()">✕</span></div>`).join('');
+ }catch(e){}
+}
+function actNudge(i){const n=_nudges[i]; if(!n)return;
+ if(n.type==='connect'){connectTo(n.who);} else {openAskCo(); if(el('askq'))el('askq').value=n.topic||'';}
+ const e=el('nudge'+i); if(e)e.remove();
+}
+window.loadNudges=loadNudges; window.actNudge=actNudge;
+// ---------- AI understanding: mood · trust · recommendations ----------
+function moodEmoji(l){return l==='positive'?'😊':l==='negative'?'😟':'😐';}
+function trustBar(t){const w=Math.max(3,t);const c=t>=66?'var(--grn)':t>=33?'#ffcf6b':'#ff6ad5';
+ return `<span style="display:inline-block;width:90px;height:7px;border-radius:4px;background:#1a2634;vertical-align:middle;overflow:hidden"><span style="display:block;height:100%;width:${w}%;background:${c}"></span></span> <b>${t}</b>`;}
+async function openInsight(id){
+ const ov=el('insight');ov.classList.add('on');el('istat').textContent='analysing…';
+ const b=el('ibody');b.innerHTML='<div class="thinkdot">reading the conversation history…</div>';
+ try{
+  const ins=await(await fetch(`/amp/insight?agent_id=${encodeURIComponent(id)}`)).json();
+  let rel=null;
+  if(id!==S.agent_id){rel=await(await fetch(`/amp/relationship?a=${encodeURIComponent(S.agent_id)}&b=${encodeURIComponent(id)}`)).json();}
+  const d=ins.digest||{};const m=ins.mood||{};
+  let h=`<div class="icard"><div class="ihead">${id===S.agent_id?'you':'<b>'+id+'</b>'} ${moodEmoji(m.label)} <span class="imood">${m.label||'neutral'} mood</span></div>`;
+  if(d.summary)h+=`<div class="isum">${esc(d.summary)}</div>`;
+  if(rel)h+=`<div class="irow"><span class="ilab">trust with you</span> ${trustBar(rel.trust)} <span style="color:var(--dim)">· ${rel.messages} msgs · rapport ${rel.sentiment>0?'👍':rel.sentiment<0?'👎':'—'}${rel.connected?' · 🔗 connected':''}</span></div>`;
+  if((d.topics||[]).length)h+=`<div class="irow"><span class="ilab">topics</span> ${d.topics.map(t=>`<span class="ichip">${esc(t)}</span>`).join('')}</div>`;
+  if((d.strengths||[]).length)h+=`<div class="irow"><span class="ilab">strengths</span> ${d.strengths.map(t=>`<span class="ichip g">${esc(t)}</span>`).join('')}</div>`;
+  if((ins.peers||[]).length){h+=`<div class="irow"><span class="ilab">works with</span></div>`;
+   h+=ins.peers.map(p=>`<div class="ipeer" onclick="connectTo('${p.agent_id}')"><b>${p.agent_id}</b> ${trustBar(p.trust)} <span style="color:var(--dim)">${p.messages} msgs ${p.sentiment>0?'😊':p.sentiment<0?'😟':''}</span></div>`).join('');}
+  if((d.recommendations||[]).length){h+=`<div class="irow" style="margin-top:10px"><span class="ilab">✨ recommendations</span></div>`;
+   h+=d.recommendations.map(r=>`<div class="irec"><b>→ ${esc(r.to||'')}</b><div style="color:var(--dim);font-size:12px">${esc(r.why||'')}</div></div>`).join('');}
+  h+='</div>';b.innerHTML=h;el('istat').textContent=d._generated===false?'(building — chat more)':'';
+ }catch(e){b.innerHTML='<div class="thinkdot">Could not load insight.</div>';el('istat').textContent='';}
+}
+window.openInsight=openInsight;
+// ---------- Ask the company: agentic Q&A over the knowledge graph ----------
+const ASK_SUGS=["What's happening this week?","Who should I ask about the incentive engine?","What are our biggest risks / bus factor?","Who is working on HBL/UBL payouts?"];
+async function openAskCo(){
+ el('askco').classList.add('on');
+ el('asksug').innerHTML=ASK_SUGS.map(s=>`<span class="sug" onclick="el('askq').value=this.textContent;askCompany()">${s}</span>`).join('');
+ try{const k=await(await fetch('/amp/knowledge')).json();
+  el('kbfresh').innerHTML = k.enabled
+    ? `graph ${k.freshness.age_minutes==null?'':k.freshness.age_minutes+'m'} fresh · ${k.counts.p} people · ${k.counts.j} projects · ${k.counts.c} commits`
+    : 'knowledge graph not loaded';
+ }catch(e){el('kbfresh').textContent='';}
+ loadAskHistory();
+ el('askq').focus();
+}
+async function loadAskHistory(){
+ try{
+  const r=await fetch(`/amp/ask/history?agent_id=${encodeURIComponent(S.agent_id)}&token=${encodeURIComponent(S.token)}`);
+  const d=await r.json(); const out=el('askout'); const t=d.turns||[];
+  if(!t.length){out.innerHTML='';return;}
+  out.innerHTML=t.map(m=>m.role==='user'
+    ? `<div class="qbubble">${esc(m.content)}</div>`
+    : `<div class="abubble">${md(m.content)}</div>`).join('')
+    + `<div class="fbbar" style="opacity:.6">↑ remembered context · the agent uses this to follow up</div>`;
+  out.scrollTop=out.scrollHeight;
+ }catch(e){}
+}
+async function newChat(){
+ try{await fetch('/amp/ask/reset',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({from:S.agent_id,token:S.token})});}catch(e){}
+ el('askout').innerHTML=''; const fb=el('fbbar'); if(fb)fb.remove(); el('askq').focus();
+}
+window.newChat=newChat;
+let _asking=false;
+const ASK_TIP={find_experts:'finding the right people',get_person:'reading a profile',get_activity:'scanning recent activity',search_commits:'searching commit history',get_project:'opening a project',list_projects:'listing projects',search_notes:'reading institutional notes',get_team_updates:'checking status updates'};
+function renderAsk(box,raw){
+ // U+001E = drop the interstitial narration, show only the clean final answer that follows.
+ const ri=raw.lastIndexOf('\x1e'); let work = ri>=0 ? raw.slice(ri+1) : raw;
+ // strip framed progress tokens \x1f<tool>\x1f, remembering the last one for the status line.
+ let tool=null; work=work.replace(/\x1f([^\x1f]*)\x1f/g,(m,n)=>{tool=n||tool;return '';});
+ const ti=work.lastIndexOf('\x1f'); if(ti>=0) work=work.slice(0,ti); // hide a partial trailing frame
+ if(work.trim()) box.innerHTML=md(work);
+ else box.innerHTML=`<span class="thinkdot">🔎 ${ASK_TIP[tool]||'searching the company graph'}…</span>`;
+}
+let _askQ='', _askA='';
+function cleanAnswer(raw){const ri=raw.lastIndexOf('\x1e');let w=ri>=0?raw.slice(ri+1):raw;
+ w=w.replace(/\x1f[^\x1f]*\x1f/g,'');const ti=w.lastIndexOf('\x1f');if(ti>=0)w=w.slice(0,ti);return w.trim();}
+async function askCompany(qOverride,improve,reason){
+ const q=(qOverride||el('askq').value).trim(); if(!q||_asking)return; _asking=true; _askQ=q;
+ const out=el('askout'); el('askbtn').textContent='…';
+ const fb=el('fbbar'); if(fb)fb.remove();
+ if(!improve) out.innerHTML=`<div class="qbubble">${esc(q)}</div><div class="abubble" id="astream"><span class="thinkdot">consulting the company graph…</span></div>`;
+ else el('astream').innerHTML='<span class="thinkdot">re-thinking a better answer…</span>';
+ const box=el('astream'); let raw='';
+ try{
+  const body={from:S.agent_id,token:S.token,text:q}; if(improve){body.improve=true;body.reason=reason||'';}
+  const r=await fetch('/amp/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const rd=r.body.getReader(); const dec=new TextDecoder();
+  while(true){const {done,value}=await rd.read(); if(done)break;
+   raw+=dec.decode(value,{stream:true}); renderAsk(box,raw); out.scrollTop=out.scrollHeight;}
+  renderAsk(box,raw); _askA=cleanAnswer(raw); askFeedbackBar();
+ }catch(e){box.innerHTML='<span style="color:var(--mag)">⚠️ could not reach the assistant.</span>';}
+ finally{_asking=false; el('askbtn').textContent='ask ▸';}
+}
+function askFeedbackBar(){
+ const out=el('askout'); let b=el('fbbar'); if(b)b.remove();
+ const d=document.createElement('div'); d.id='fbbar'; d.className='fbbar';
+ d.innerHTML=`<span>Was this helpful?</span> <button class="fbb" onclick="askFeedback('up')">👍</button> <button class="fbb" onclick="askFeedback('down')">👎</button>`;
+ out.appendChild(d); out.scrollTop=out.scrollHeight;
+}
+async function askFeedback(rating){
+ const b=el('fbbar');
+ if(rating==='up'){
+  fetch('/amp/ask/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({from:S.agent_id,token:S.token,rating:'up',question:_askQ,answer:_askA})}).catch(()=>{});
+  if(b)b.innerHTML='<span style="color:var(--grn)">✓ thanks — saved. Future answers will build on this.</span>';
+ }else{
+  const reason=prompt('What was off? (optional — helps it do better)','')||'';
+  fetch('/amp/ask/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({from:S.agent_id,token:S.token,rating:'down',question:_askQ,answer:_askA,reason})}).catch(()=>{});
+  askCompany(_askQ,true,reason);   // regenerate a better answer, then re-ask for feedback
+ }
+}
+window.openAskCo=openAskCo; window.askCompany=askCompany; window.askFeedback=askFeedback;
+function copyId(){const t=S.agent_id,b=el('idchip');const done=()=>{if(!b)return;const o=b.innerHTML;b.innerHTML='✓ copied — share it';b.style.color='var(--grn)';setTimeout(()=>{b.innerHTML=o;b.style.color='';},1400);};
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(done);}else{try{const i=document.createElement('input');i.value=t;document.body.appendChild(i);i.select();document.execCommand('copy');i.remove();}catch(e){}done();}}
+window.copyId=copyId;
+// ---------- admin: approve / add users (visible only to role=admin) ----------
+async function adminApi(path,body){return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({from:S.agent_id,token:S.token,...(body||{})})});}
+async function openAdmin(){el('admin').classList.add('on');loadUsersM();}
+async function loadUsersM(){
+ const box=el('userlist');box.innerHTML='<div class="thinkdot">loading users…</div>';el('astat').textContent='';
+ try{const r=await adminApi('/amp/admin/users');const d=await r.json();
+  if(!r.ok){box.innerHTML='<div class="thinkdot">'+(d.detail||'admin only')+'</div>';return;}
+  const us=d.users||[];const pend=us.filter(u=>!u.approved).length;
+  el('astat').textContent=pend?`${pend} awaiting approval`:'all approved';
+  box.innerHTML=us.map(u=>`<div class="urow ${u.approved?'':'pend'}">
+    <div class="ui"><b>${esc(u.name||u.agent_id)}</b> <span class="uid">🆔 ${u.agent_id}</span>
+      <div class="ue">${esc(u.email||'')} · ${u.role||'member'}</div></div>
+    <div>${u.approved?'<span class="ok">✓ approved</span>'
+      :`<button class="go" style="padding:0 12px;height:32px" onclick="approveM('${u.agent_id}')">approve</button>`}</div>
+  </div>`).join('')||'<div class="thinkdot">no users yet</div>';
+ }catch(e){box.innerHTML='<div class="thinkdot">could not load users</div>';}
+}
+async function approveM(id){const r=await adminApi('/amp/admin/approve',{agent_id:id});
+ if(r.ok)loadUsersM();else{const d=await r.json();alert(d.detail||'failed');}}
+async function addUserM(){const email=el('au_email').value.trim();if(!email){el('au_email').focus();return;}
+ const r=await adminApi('/amp/admin/adduser',{email,name:el('au_name').value.trim(),role:el('au_role').value});
+ const d=await r.json();if(!r.ok){alert(d.detail||'failed');return;}
+ el('au_email').value='';el('au_name').value='';loadUsersM();}
+window.openAdmin=openAdmin;window.loadUsersM=loadUsersM;window.approveM=approveM;window.addUserM=addUserM;
+async function fetchSuggest(thread,peer){
+ try{const d=await(await fetch(`/amp/suggest?thread=${thread}&agent=${S.agent_id}`)).json();
+  el('sugs').innerHTML=(d.suggestions||[]).map(s=>`<span class="sug" data-t="${encodeURIComponent(s)}" data-p="${peer}">${s}</span>`).join('');
+  document.querySelectorAll('.sug').forEach(x=>x.onclick=()=>{el('txt').value=decodeURIComponent(x.dataset.t);
+    to=x.dataset.p; el('to').value=x.dataset.p; el('sugs').innerHTML='';});
+ }catch(e){}
+}
+async function poll(){
+ loadDir();
+ try{
+  const r=await fetch(`/amp/poll?agent_id=${S.agent_id}&token=${encodeURIComponent(S.token)}&wait=20`);
+  const d=await r.json();
+  for(const m of d.messages){if(seen.has(m.id))continue; seen.add(m.id);
+    if(m.intent==='council'&&m.body&&m.body.council){renderCouncilEvent(m);continue;}
+    addMsg(m);
+    if(m.from!==S.agent_id){threads[m.from]=m.thread; fetchSuggest(m.thread,m.from);}}
+ }catch(e){}
+ setTimeout(poll,600);
+}
+// ---------- council mode ----------
+const PERSONAS=[['architect','🏛 Architect'],['pragmatist','⚡ Pragmatist'],['security','🛡 Security'],['qa','🔬 QA'],['cost','💰 Cost/Perf']];
+let picked=new Set(['architect','pragmatist','security','qa']);
+function openCouncil(){
+ el('council').classList.add('on'); el('csetup').style.display='block';
+ el('cstream').classList.remove('on'); el('cstream').innerHTML=''; el('cstat').textContent='';
+ el('croster').innerHTML=PERSONAS.map(([k,l])=>`<span class="pchip ${picked.has(k)?'on':''}" data-k="${k}">${l}</span>`).join('');
+ document.querySelectorAll('.pchip').forEach(c=>c.onclick=()=>{const k=c.dataset.k;
+   picked.has(k)?picked.delete(k):picked.add(k); c.classList.toggle('on');});
+}
+async function convene(){
+ const topic=el('ctopic').value.trim(); if(!topic)return;
+ el('csetup').style.display='none'; const s=el('cstream'); s.classList.add('on');
+ s.innerHTML='<div class="thinkdot">convening… broadcasting live to every agent on the mesh</div>';
+ el('cstat').textContent='deliberating…';
+ await fetch('/amp/council',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({topic,personas:[...picked],rounds:2,by:S.agent_id})});
+ // turns + conclusion arrive via poll broadcast — shared with all devices
+}
+function ensureCouncilOpen(){
+ if(!el('council').classList.contains('on')){el('council').classList.add('on');}
+ el('csetup').style.display='none'; el('cstream').classList.add('on');
+}
+function renderCouncilEvent(m){
+ const c=m.body.council, s=el('cstream');
+ if(c.event==='start'){ensureCouncilOpen();
+  s.innerHTML=`<div class="thinkdot">🗣 ${(c.roster||[]).map(r=>r.emoji+r.name).join(' · ')} convened on:<br><b style="color:var(--ink)">${esc(c.topic)}</b></div>`;
+  el('cstat').textContent='deliberating…';}
+ else if(c.event==='turn'){ensureCouncilOpen();const d=document.createElement('div');d.className='turn';
+  d.innerHTML=`<div class="who">${c.emoji} ${c.name}<span class="rd">round ${c.round}</span></div>${md(m.body.text)}`;
+  s.appendChild(d);s.scrollTop=s.scrollHeight;}
+ else if(c.event==='conclusion'){const d=document.createElement('div');d.className='concl';
+  d.innerHTML=`<div class="who" style="color:var(--mag)">⚖ Conclusion</div>${md(m.body.text)}`;
+  s.appendChild(d);s.scrollTop=s.scrollHeight;el('cstat').textContent='concluded ✓';}
+}
+let auto=false;
+async function toggleAuto(){
+ auto=!auto;
+ await fetch('/amp/mode',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({from:S.agent_id,token:S.token,auto})});
+ const b=el('autoBtn'); b.textContent='🤖 Auto: '+(auto?'ON':'off');
+ b.style.color=auto?'#37f5a5':''; b.style.borderColor=auto?'#37f5a5':'';
+}
+window.toggleAuto=toggleAuto;
+// ---------- live auto-pilot config (token control) ----------
+async function toggleCfg(){const c=el('cfg');c.classList.toggle('on');
+ if(c.classList.contains('on')){try{const d=await(await fetch('/amp/config')).json();
+   el('dly').value=d.delay;el('dval').textContent=d.delay;
+   el('cap').value=d.cap;el('cval').textContent=d.cap;el('aen').checked=d.enabled;}catch(e){}}}
+function pushCfg(){clearTimeout(pushCfg._t);pushCfg._t=setTimeout(()=>{
+ fetch('/amp/config',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({delay:+el('dly').value,cap:+el('cap').value,enabled:el('aen').checked})});},250);}
+window.toggleCfg=toggleCfg;window.pushCfg=pushCfg;
+window.openCouncil=openCouncil;window.convene=convene;
+function logout(){localStorage.removeItem('amp');location.reload();}
+async function boot(){
+ if(!S){register();return;}
+ try{
+   const w=await(await fetch(`/amp/whoami?agent_id=${encodeURIComponent(S.agent_id)}&token=${encodeURIComponent(S.token)}`)).json();
+   if(!w.ok){localStorage.removeItem('amp');register();return;}
+   S.role=w.role;
+ }catch(e){/* offline: allow cached */}
+ chat();
+}
+window.logout=logout;window.doReg=doReg;window.send=send;
+boot();
+</script></body></html>

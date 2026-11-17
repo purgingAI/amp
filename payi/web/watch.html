@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayI Core — live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="/static/payi.css">
+<style>
+body{overflow:hidden}
+.grid{height:calc(100vh - 60px);display:grid;gap:14px;padding:14px 18px 16px;
+  grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,.92fr);grid-template-rows:minmax(0,1fr) minmax(0,1.08fr);
+  grid-template-areas:"topo flow ledger" "insp log mand"}
+.a-topo{grid-area:topo;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.a-insp{grid-area:insp;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.a-flow{grid-area:flow;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.a-log{grid-area:log;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.a-ledger{grid-area:ledger;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.a-mand{grid-area:mand;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.ph{display:flex;align-items:center;gap:10px;padding:13px 16px 11px;border-bottom:1px solid var(--line)}
+.ph .label{color:var(--muted)}
+.ph .n{font:500 11px var(--mono);color:var(--dim)}
+
+#topo{width:100%;height:100%;display:block}
+.node rect{fill:#0c111b;stroke:var(--line2);stroke-width:1.2;transition:stroke .3s}
+.node .t{font:600 12.5px var(--ui);fill:var(--ink)} .node .s{font:500 9.5px var(--mono);fill:var(--dim);letter-spacing:.02em}
+.node .ic{fill:none;stroke:var(--muted);stroke-width:1.4}
+.node.hot rect{stroke:var(--hot,var(--payi));filter:url(#glow)}
+.node.hot .ic{stroke:var(--hot,var(--payi))}
+.edge{fill:none;stroke:#1c2638;stroke-width:1.3}
+.edge.hot{stroke:var(--hot,var(--payi));stroke-opacity:.8}
+.band{font:500 9.5px var(--mono);letter-spacing:.18em;fill:#3a475c;text-transform:uppercase}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line)}
+.stat{padding:10px 14px;border-right:1px solid var(--line);display:grid;gap:3px}
+.stat:last-child{border-right:0}
+.stat b{font:600 20px/1 var(--mono);font-variant-numeric:tabular-nums}
+.stat span{font:500 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.banner{position:absolute;left:50%;top:54px;transform:translate(-50%,-8px);opacity:0;transition:.35s;pointer-events:none;
+  background:color-mix(in oklab,var(--ok) 14%,#07100d);border:1px solid color-mix(in oklab,var(--ok) 50%,transparent);border-radius:12px;padding:10px 16px;
+  font:600 14px var(--ui);color:var(--ok);box-shadow:0 10px 40px -10px var(--ok);white-space:nowrap}
+.banner.show{opacity:1;transform:translate(-50%,0)}
+
+.ihead{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.ihead .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stage{font:500 11px var(--mono);color:var(--muted);background:var(--raise);border:1px solid var(--line2);border-radius:6px;padding:3px 7px}
+.ititle{font:600 18px/1.3 var(--ui);letter-spacing:-.01em}
+.imeta{font:500 11px var(--mono);color:var(--dim)}
+.fields{padding:6px 18px 16px;display:grid;gap:0;align-content:start}
+.f{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:14px;padding:9px 0;border-bottom:1px dashed #172031;align-items:start}
+.f:last-child{border-bottom:0}
+.f .k{font:500 11.5px var(--ui);color:var(--muted);padding-top:1px}
+.f .v{min-width:0;font:500 12.5px var(--mono);color:var(--ink);word-break:break-word}
+.f .v.text{font-family:var(--ui);font-weight:450;color:#c9d3e3}
+.f .v.amount{font:600 16px var(--mono)}
+.f .v.bad{color:var(--red);font-family:var(--ui)}
+.f pre{margin:0;white-space:pre-wrap;font:500 11.5px/1.5 var(--mono);color:#a9c1dc;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.hexbox{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;max-height:108px;overflow:hidden;position:relative}
+.hexbox .bytes{position:absolute;right:8px;bottom:6px;font:500 10px var(--mono);color:var(--dim);background:var(--bg2);padding-left:6px}
+.pin{margin-left:auto;display:flex;gap:6px}
+
+.flowhead{padding:14px 16px 10px;display:grid;gap:6px;border-bottom:1px solid var(--line)}
+.flowtitle{font:600 15px/1.35 var(--ui)}
+.rail{padding:8px 10px 12px;display:grid;gap:2px;align-content:start;min-height:0}
+.st{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer}
+.st:hover{background:var(--raise)}
+.st .i{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--ok);color:var(--ok)}
+.st .i svg{width:11px;height:11px}
+.st.refused .i{border-color:var(--red);color:var(--red)}
+.st.cur{background:color-mix(in oklab,var(--hotc,var(--payi)) 9%,transparent)}
+.st .tt{font:500 12.5px var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st .fr{font:500 10px var(--mono);color:var(--dim)}
+.st .ms{font:500 10.5px var(--mono);color:var(--dim)}
+.prev{padding:8px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--dim);display:grid;gap:4px}
+
+.log{font:500 11.5px var(--mono)}
+.lr{display:grid;grid-template-columns:78px 3px 150px minmax(0,1fr);gap:10px;align-items:center;padding:6px 14px;border-bottom:1px solid #121a28;cursor:pointer}
+.lr:hover{background:var(--raise)}
+.lr .c{height:14px;border-radius:2px}
+.lr .ts{color:var(--dim)} .lr .sg{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr .tl{font-family:var(--ui);color:#c9d3e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr.refused .tl{color:var(--red)}
+.lr.sel{background:color-mix(in oklab,var(--payi) 10%,transparent)}
+
+.acct{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}
+.acct i{width:8px;height:8px;border-radius:50%}
+.acct b{font:550 13px var(--ui)} .acct small{display:block;font:500 10.5px var(--mono);color:var(--dim)}
+.acct .bal{font:600 15px var(--mono);font-variant-numeric:tabular-nums}
+.sum{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;font:500 12px var(--mono);color:var(--muted)}
+.entries{padding:4px 16px 12px}
+.en{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:8px;font:500 11.5px var(--mono);padding:4px 0}
+.en .dr{color:var(--red)} .en .cr{color:var(--ok)}
+.mcard{padding:12px 16px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.mcard .top{display:flex;align-items:center;gap:8px}
+.mcard b{font:600 13px var(--ui)}
+.mcard .lim{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--dim)}
+.passbox{padding:12px 16px;display:grid;gap:8px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="mark"></span><div><b>Pay<i>I</i> Core</b><small>live protocol monitor</small></div></div>
+  <span class="chip on"><span class="dot"></span>Monitor <b>online</b></span>
+  <span class="chip on" id="c-ledger"><span class="dot"></span>Ledger <b>balanced</b></span>
+  <span class="chip on" id="c-key"><span class="dot"></span>Device key <b>…</b></span>
+  <span class="chip on"><span class="dot"></span>Acquirer CA <b>Falcon Café certified</b></span>
+  <div class="spacer"></div>
+  <span class="chip"><span class="pdot" style="color:var(--voice)"></span>VoicePay</span>
+  <span class="chip"><span class="pdot" style="color:var(--payi)"></span>PayI</span>
+  <span class="chip"><span class="pdot" style="color:var(--palm)"></span>PalmPay</span>
+  <span class="chip mono" id="clock">--:--:--</span>
+</header>
+
+<main class="grid">
+  <section class="panel a-topo">
+    <div class="ph"><span class="label">Topology · every message, as it happens</span><div class="spacer"></div><span class="n" id="evcount">0 events</span></div>
+    <div style="position:relative;min-height:0"><svg id="topo" viewBox="0 0 1044 412" preserveAspectRatio="xMidYMid meet"></svg><div class="banner" id="banner"></div></div>
+    <div class="stats">
+      <div class="stat"><b id="s-checks">0</b><span>checks passed</span></div>
+      <div class="stat"><b id="s-sigs">0</b><span>signatures</span></div>
+      <div class="stat"><b id="s-aead">0</b><span>AEAD sealed</span></div>
+      <div class="stat"><b id="s-palm">0</b><span>palm releases</span></div>
+      <div class="stat"><b id="s-kept" style="color:var(--ok)">0</b><span>templates kept</span></div>
+    </div>
+  </section>
+
+  <section class="panel a-insp">
+    <div class="ihead" id="ihead"><div class="row"><span class="label">Inspector</span></div><div class="ititle dim">Waiting for the first message…</div></div>
+    <div class="fields scroll" id="fields"></div>
+  </section>
+
+  <section class="panel a-flow">
+    <div class="flowhead" id="flowhead"><span class="label">Current flow</span><div class="flowtitle dim">—</div></div>
+    <div class="rail scroll" id="rail"></div>
+    <div class="prev" id="prev"></div>
+  </section>
+
+  <section class="panel a-log">
+    <div class="ph"><span class="label">Event log</span><div class="spacer"></div><button class="btn sm ghost" id="live">● Live</button></div>
+    <div class="scroll log" id="log"></div>
+  </section>
+
+  <section class="panel a-ledger">
+    <div class="ph"><span class="label">Ledger · derived balances</span><div class="spacer"></div><span class="n">append-only · double-entry</span></div>
+    <div class="scroll" style="min-height:0">
+      <div id="accts"></div>
+      <div class="sum" id="sum"></div>
+      <div class="label" style="padding:4px 16px 2px">Last posting</div>
+      <div class="entries" id="entries"><div class="dim" style="font-size:12px;padding:6px 0">No postings yet</div></div>
+    </div>
+  </section>
+
+  <section class="panel a-mand">
+    <div class="ph"><span class="label">Mandates · store pass</span></div>
+    <div class="scroll" style="min-height:0"><div id="mands"></div><div class="passbox" id="passbox"></div></div>
+  </section>
+</main>
+
+<script src="/static/payi.js"></script>
+<script>
+const PC = {voicepay: "var(--voice)", payi: "var(--payi)", palmpay: "var(--palm)", "": "var(--muted)"};
+const prodColor = e => e.product === "palmpay" ? PC.palmpay : (e.product === "payi" ? (e.stage.startsWith("voice") || e.stage.startsWith("intent") || e.stage.startsWith("payee") ? PC.voicepay : PC.payi) : PC[""]);
+const N = {
+  jarvis: [100, 110, "Jarvis · VoicePay", "speech proposes only", "M-6 -2v4M-2 -6v12M2 -4v8M6 -1v2"],
+  phone: [100, 290, "Sagar's phone", "TPM key · palm", "M-5 -8h10v16h-10zM-1 5h2"],
+  till: [322, 110, "Till-1 reader", "terminal key", "M-7 -5h14v10h-14zM-3 8h6"],
+  gate: [322, 290, "Gate posts · UWB", "gate key", "M-6 -8v16M6 -8v16M-2 0h4"],
+  accept: [522, 110, "Acceptance", "PalmPay · 16 checks", "M-6 0l4 4 8-9"],
+  edge: [522, 290, "Store edge", "pass roster only", "M-7 -6h14v12h-14zM-7 -1h14"],
+  ca: [422, 380, "Acquirer CA", "store certificates", "M-6 -3l6-4 6 4v6l-6 4-6-4z"],
+  monitor: [742, 110, "PayI Monitor", "sessions · nonces", "M0 -8l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8v-5z"],
+  ledger: [742, 290, "Ledger", "double-entry", "M-7 -6h14M-7 -2h14M-7 2h14M-7 6h14"],
+  alex: [942, 110, "Alex · personal", "wal_alex_aed", "M0 -2a3 3 0 1 0 0-.1M-6 7c1-4 11-4 12 0"],
+  falcon: [942, 290, "Falcon Café", "wal_falcon_aed", "M-6 -2h12v7h-12zM-7 -2l2-5h10l2 5"],
+};
+const E = [["jarvis", "phone"], ["phone", "till"], ["phone", "gate"], ["gate", "edge"], ["till", "accept"], ["accept", "monitor"],
+           ["phone", "monitor"], ["monitor", "ledger"], ["monitor", "alex"], ["monitor", "falcon"], ["ca", "edge"]];
+function curve(a, b) {
+  const [x1, y1] = N[a], [x2, y2] = N[b];
+  if (Math.abs(y1 - y2) < 5 || Math.abs(x1 - x2) < 5) return `M${x1} ${y1} L${x2} ${y2}`;
+  const mx = (x1 + x2) / 2; return `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+}
+function drawTopo() {
+  const bands = [["Payer", 100], ["Store · PalmPay", 422], ["PayI Core", 742], ["Payees", 942]];
+  $("#topo").innerHTML = `<defs><filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    ${bands.map(([t, x]) => `<text x="${x}" y="30" text-anchor="middle" class="band">${t}</text>`).join("")}
+    <line x1="211" y1="44" x2="211" y2="404" stroke="#131b29" stroke-dasharray="2 6"/><line x1="632" y1="44" x2="632" y2="404" stroke="#131b29" stroke-dasharray="2 6"/><line x1="842" y1="44" x2="842" y2="404" stroke="#131b29" stroke-dasharray="2 6"/>
+    ${E.map(([a, b]) => `<path class="edge" id="e-${a}-${b}" d="${curve(a, b)}"/>`).join("")}
+    <g id="packets"></g>
+    ${Object.entries(N).map(([id, [x, y, t, s, ic]]) => `<g class="node" id="n-${id}" transform="translate(${x - 86} ${y - 27})">
+      <rect width="172" height="54" rx="12"/><circle cx="24" cy="27" r="14" fill="#101726" stroke="#1d2940"/>
+      <path class="ic" d="${ic}" transform="translate(24 27)"/><text class="t" x="45" y="24">${t}</text><text class="s" x="45" y="39">${s}</text></g>`).join("")}`;
+}
+drawTopo();
+function nodeOf(role, e) {
+  if (role === "payee") return (e.data?.to_agent === "agt_falcon" || e.product === "palmpay") ? "falcon" : "alex";
+  return N[role] ? role : "monitor";
+}
+function hot(id, color) {
+  const n = $("#n-" + id); if (!n) return; n.style.setProperty("--hot", color); n.classList.add("hot");
+  clearTimeout(n._t); n._t = setTimeout(() => n.classList.remove("hot"), 1500);
+}
+function packet(a, b, color) {
+  if (a === b) return;
+  let path = $(`#e-${a}-${b}`) || $(`#e-${b}-${a}`), rev = !$(`#e-${a}-${b}`);
+  if (!path) { path = document.createElementNS("http://www.w3.org/2000/svg", "path"); path.setAttribute("d", curve(a, b)); rev = false; path.classList.add("edge"); path.style.opacity = 0; $("#topo").insertBefore(path, $("#packets")); }
+  path.style.setProperty("--hot", color); path.classList.add("hot"); clearTimeout(path._t); path._t = setTimeout(() => path.classList.remove("hot"), 1200);
+  const L = path.getTotalLength(), g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.innerHTML = `<circle r="9" fill="${color}" opacity=".18"/><circle r="4" fill="${color}"/>`; g.style.filter = "url(#glow)";
+  $("#packets").append(g); const t0 = performance.now(), dur = 620;
+  const step = now => { const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    const p = path.getPointAtLength((rev ? 1 - e : e) * L); g.setAttribute("transform", `translate(${p.x} ${p.y})`);
+    if (k < 1) requestAnimationFrame(step); else g.remove(); };
+  requestAnimationFrame(step);
+}
+
+// ── inspector ──
+let pinned = null, all = [];
+function scrambleHex(el, text) {
+  const chars = "0123456789abcdef", t0 = performance.now(), dur = 520;
+  const tick = now => { const k = Math.min(1, (now - t0) / dur), n = Math.floor(text.length * k);
+    el.innerHTML = `<span class="h0">${esc(text.slice(0, Math.min(n, 8)))}</span>${esc(text.slice(Math.min(n, 8), n))}<span style="color:#3b4a63">${Array.from({length: Math.min(text.length - n, 400)}, () => chars[Math.random() * 16 | 0]).join("")}</span>`;
+    if (k < 1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+function inspect(e, animate = true) {
+  const col = prodColor(e);
+  $("#ihead").innerHTML = `<div class="row"><span class="label">Inspector</span><span class="stage">${esc(e.stage)}</span>
+      <span class="pill ${e.status === "ok" ? "green" : "red"}">${e.status === "ok" ? "ok" : "refused"}</span>
+      ${e.product ? `<span class="pill ${e.product === "palmpay" ? "palm" : "payi"}">${e.product === "palmpay" ? "PalmPay" : "PayI"}</span>` : ""}
+      <div class="pin">${pinned ? `<span class="pill amber">pinned</span>` : ""}</div></div>
+    <div class="ititle" style="color:${e.status === "ok" ? "var(--ink)" : "var(--red)"}">${esc(e.title)}</div>
+    <div class="imeta">${esc(N[nodeOf(e.frm, e)]?.[2] || e.frm)} → ${esc(N[nodeOf(e.to, e)]?.[2] || e.to)} · ${new Date(e.t).toLocaleTimeString("en-GB", {hour12: false})}.${String(e.t % 1000).padStart(3, "0")}${e.flow ? " · " + esc(e.flow) : ""}</div>`;
+  $("#fields").innerHTML = (e.fields || []).map((f, i) => {
+    let v;
+    if (f.t === "hex") { const s = String(f.v), bytes = s.length / 2 | 0; v = `<div class="hexbox"><div class="hex" data-hex="${i}"></div>${bytes > 40 ? `<span class="bytes">${bytes} bytes</span>` : ""}</div>`; }
+    else if (f.t === "check") v = check(!!f.v, f.v === true ? "verified" : "yes", "no");
+    else if (f.t === "json") { let j = f.v; try { j = JSON.stringify(JSON.parse(f.v), null, 1); } catch (_) {} v = `<pre>${esc(j)}</pre>`; }
+    else v = esc(f.v === null || f.v === undefined ? "—" : f.v);
+    return `<div class="f rise" style="animation-delay:${Math.min(i, 12) * 35}ms"><div class="k">${esc(f.k)}</div><div class="v ${f.t}">${v}</div></div>`;
+  }).join("") || `<div class="f"><div class="k">—</div><div class="v text dim">No payload for this step.</div></div>`;
+  (e.fields || []).forEach((f, i) => { if (f.t !== "hex") return; const el = $(`[data-hex="${i}"]`); const s = String(f.v).slice(0, 360) + (String(f.v).length > 360 ? "…" : "");
+    animate ? scrambleHex(el, s) : (el.innerHTML = hexHTML(s)); });
+}
+
+// ── flow rail ──
+function renderFlow(flow) {
+  const evs = all.filter(e => e.flow && e.flow === flow); if (!evs.length) return;
+  const e0 = evs[0], col = prodColor(evs[evs.length - 1]);
+  const title = e0.stage === "voice.heard" ? e0.title : e0.title;
+  const done = evs.find(e => e.stage === "wallet.credited"), bad = evs.find(e => e.status !== "ok" && e.stage.includes("refuse") || e.stage === "monitor.refuse");
+  $("#flowhead").innerHTML = `<div class="row" style="display:flex;gap:8px;align-items:center"><span class="label">Current flow</span>
+     <span class="pill ${e0.product === "palmpay" ? "palm" : "voice"}">${e0.product === "palmpay" ? "PalmPay" : "VoicePay · PayI"}</span>
+     <div class="spacer"></div><span class="mono dim" style="font-size:11px">${((evs[evs.length - 1].t - e0.t) / 1000).toFixed(2)} s</span></div>
+    <div class="flowtitle">${esc(title)}</div>
+    ${done ? `<div class="check y">${ICON.check}Captured · ${fmt(done.data.amount)} AED → ${esc(done.data.to_agent === "agt_falcon" ? "Falcon Café" : "Alex Morgan")}</div>` : ""}`;
+  $("#rail").style.setProperty("--hotc", col);
+  $("#rail").innerHTML = evs.map((e, i) => `<div class="st ${e.status !== "ok" ? "refused" : ""} ${i === evs.length - 1 ? "cur" : ""}" data-seq="${e.seq}">
+     <div class="i">${e.status === "ok" ? ICON.check : ICON.x}</div>
+     <div style="min-width:0"><div class="tt">${esc(e.title)}</div><div class="fr">${esc(e.stage)}</div></div>
+     <div class="ms">+${e.t - e0.t} ms</div></div>`).join("");
+  $$("#rail .st").forEach(r => r.onclick = () => pin(+r.dataset.seq));
+  $("#rail").scrollTop = 1e9;
+}
+function renderPrev() {
+  const flows = [...new Set(all.filter(e => e.flow).map(e => e.flow))].slice(-6, -1).reverse();
+  $("#prev").innerHTML = flows.length ? `<span class="label" style="margin-bottom:2px">Earlier</span>` + flows.map(f => {
+    const evs = all.filter(e => e.flow === f), c = evs.find(e => e.stage === "wallet.credited"), r = evs.find(e => e.status !== "ok");
+    return `<div style="display:flex;gap:8px;justify-content:space-between"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(evs[0].title)}</span><span class="mono" style="color:${c ? "var(--ok)" : r ? "var(--red)" : "var(--dim)"}">${c ? "+" + fmt(c.data.amount) : r ? "refused" : "…"}</span></div>`;
+  }).join("") : "";
+}
+
+// ── log ──
+function logRow(e) {
+  const d = document.createElement("div"); d.className = "lr" + (e.status !== "ok" ? " refused" : ""); d.dataset.seq = e.seq;
+  const t = new Date(e.t); d.innerHTML = `<span class="ts">${t.toLocaleTimeString("en-GB", {hour12: false}).slice(3)}.${String(e.t % 1000).padStart(3, "0")}</span>
+    <span class="c" style="background:${prodColor(e)}"></span><span class="sg">${esc(e.stage)}</span><span class="tl">${esc(e.title)}</span>`;
+  d.onclick = () => pin(e.seq); $("#log").prepend(d);
+  while ($("#log").children.length > 400) $("#log").lastElementChild.remove();
+}
+function pin(seq) { const e = all.find(x => x.seq === seq); if (!e) return; pinned = seq; $$(".lr").forEach(r => r.classList.toggle("sel", +r.dataset.seq === seq)); inspect(e, false); $("#live").textContent = "Resume live"; }
+$("#live").onclick = () => { pinned = null; $$(".lr.sel").forEach(r => r.classList.remove("sel")); $("#live").textContent = "● Live"; if (all.length) inspect(all[all.length - 1], false); };
+
+// ── counters ──
+const C = {checks: 0, sigs: 0, aead: 0, palm: 0};
+function count(e) {
+  C.checks += (e.fields || []).filter(f => f.t === "check" && f.v === true).length;
+  C.sigs += (e.fields || []).filter(f => /signature|sig\b/i.test(f.k) && f.t === "hex").length;
+  if (e.stage === "channel.seal" || e.stage === "palm.release") C.aead++;
+  if (e.stage === "palm.release") C.palm++;
+  $("#s-checks").textContent = C.checks; $("#s-sigs").textContent = C.sigs; $("#s-aead").textContent = C.aead; $("#s-palm").textContent = C.palm;
+}
+
+// ── side panels ──
+async function refresh() {
+  const st = await api("/api/state");
+  $("#c-key b").textContent = st.device.backend === "tpm-sealed" ? "TPM 2.0 · Ed25519" : "software";
+  $("#c-ledger").className = "chip " + (st.invariant.balanced ? "on" : "warn");
+  $("#c-ledger b").textContent = st.invariant.balanced ? "balanced" : "UNBALANCED";
+  const accts = [["Sagar Uniyal", "wal_sagar_aed", st.balances.sagar, "var(--payi)"], ["Alex Morgan", "wal_alex_aed", st.balances.alex, "var(--voice)"],
+                 ["Falcon Café", "wal_falcon_aed", st.balances.falcon, "var(--palm)"],
+                 ["Demo funding", "acc_funding", -(st.balances.sagar + st.balances.alex + st.balances.falcon), "var(--dim)"]];
+  $("#accts").innerHTML = accts.map(([n, id, b, c]) => `<div class="acct"><i style="background:${c}"></i><div><b>${n}</b><small>${id}</small></div><span class="bal" style="color:${b < 0 ? "var(--muted)" : "var(--ink)"}">${fmt(b)}</span></div>`).join("");
+  $("#sum").innerHTML = `<span>Σ all entries = ${fmt(st.invariant.book_total)}</span>${check(st.invariant.balanced, "book balanced", "unbalanced")}`;
+  $("#mands").innerHTML = st.mandates.map(m => { const palmM = m.purpose === "palm_checkout";
+    return `<div class="mcard"><div class="top"><b>${esc(m.payer.split(" ")[0])} → ${esc(m.payee)}</b><span class="pill ${palmM ? "palm" : "payi"}">${esc(m.purpose)}</span></div>
+      <div class="lim"><span>today ${fmt(m.spent_today)} / ${fmt(m.limits.per_day, 0)}</span><span>per txn ${m.limits.per_txn} · green ≤ ${m.green_cap}</span></div>
+      <div class="bar"><i style="width:${Math.min(100, m.spent_today / m.limits.per_day * 100)}%;background:${palmM ? "var(--palm)" : "var(--payi)"}"></i></div>
+      <div class="lim"><span>payer sig ${esc(m.payer_sig.slice(0, 12))}…</span><span>payee sig ${esc(m.payee_sig.slice(0, 12))}…</span></div></div>`; }).join("");
+  const p = st.world.pass;
+  $("#passbox").innerHTML = `<div style="display:flex;align-items:center;gap:8px"><span class="label">Store pass · Sagar</span><div class="spacer"></div>${p ? `<span class="pill palm">checked in</span>` : `<span class="pill" style="background:var(--raise);color:var(--dim)">none</span>`}</div>
+    ${p ? `<div class="kv2" style="display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12px"><span class="dim">visit</span><span class="mono">${esc(p.visit_id)}</span><span class="dim">visit key</span><span>${hexHTML(p.visit_pub, 32)}</span><span class="dim">hands-free</span><span class="mono">${fmt(p.spent)} / ${fmt(p.cap, 0)} AED</span><span class="dim">store knows</span><span>a pseudonym only</span></div>`
+         : `<div class="dim" style="font-size:12px">Walk in through the gate to get one.</div>`}
+    <div class="dim" style="font-size:11.5px">Palm template: ${st.world.enrolled ? `on the phone only · tolerance ${st.world.tolerance}` : "not enrolled"}</div>`;
+}
+let rs; const refreshSoon = () => { clearTimeout(rs); rs = setTimeout(refresh, 200); };
+
+// ── live ──
+function onEvent(e) {
+  if (e.stage === "system.reset") { all = []; $("#log").innerHTML = ""; $("#rail").innerHTML = ""; $("#prev").innerHTML = ""; Object.keys(C).forEach(k => C[k] = 0); count({}); $("#entries").innerHTML = `<div class="dim" style="font-size:12px;padding:6px 0">No postings yet</div>`; }
+  all.push(e); if (all.length > 1500) all = all.slice(-1000);
+  $("#evcount").textContent = `${all.length} events`;
+  const col = prodColor(e), a = nodeOf(e.frm, e), b = nodeOf(e.to, e);
+  const c = e.status === "ok" ? col : "var(--red)", live = e.t > LOADED - 1500;
+  if (live) { hot(a, c); if (b !== a) setTimeout(() => hot(b, c), 520); packet(a, b, c); }
+  count(e); logRow(e);
+  if (!pinned) inspect(e, live);
+  if (e.flow) renderFlow(e.flow); renderPrev();
+  if (e.stage === "ledger.entries") $("#entries").innerHTML = (e.data.entries || []).map(x => `<div class="en"><span class="${x.amount < 0 ? "dr" : "cr"}">${x.amount < 0 ? "DEBIT" : "CREDIT"}</span><span>${esc(x.account_id)}</span><span class="${x.amount < 0 ? "dr" : "cr"}">${x.amount > 0 ? "+" : ""}${fmt(x.amount)}</span></div>`).join("") + `<div class="en"><span class="dim">txn</span><span class="dim">${esc(e.data.entries?.[0]?.txn_id || "")}</span><span class="dim">Σ 0.00</span></div>`;
+  if (e.stage === "wallet.credited" && live) { const bn = $("#banner"); bn.textContent = `+${fmt(e.data.amount)} AED → ${e.data.to_agent === "agt_falcon" ? "Falcon Café" : "Alex Morgan"} · captured via ${e.data.channel}`; bn.classList.add("show"); setTimeout(() => bn.classList.remove("show"), 3800); }
+  if (["wallet.credited", "ledger.entries", "pass.issue", "pass.close", "system.reset", "palm.enrol"].includes(e.stage)) refreshSoon();
+}
+const LOADED = Date.now();
+setInterval(() => $("#clock").textContent = new Date().toLocaleTimeString("en-GB", {hour12: false}), 500);
+refresh().then(() => stream(onEvent, 0));
+</script>
+</body>
+</html>

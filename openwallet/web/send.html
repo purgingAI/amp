@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayI · Jarvis</title>
+<style>
+:root{
+  /* OpenWallet brand energy on a night field — an orb needs darkness to read */
+  --red:#ef1a23; --red2:#e5472c; --orange:#f18918; --gold:#fbc007; --gold2:#ffe08a;
+  --green:#28a745; --mint:#5ff0a8;
+  --sky:#7fd1ff;
+  --bg0:#05070d; --bg1:#0a0f1a; --panel:rgba(255,255,255,.045);
+  --line:rgba(255,255,255,.10); --ink:#eef3fb; --dim:#8b97ad; --faint:#5a6578;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(1200px 700px at 50% 42%,#121a2b 0%,var(--bg1) 42%,var(--bg0) 100%);
+  color:var(--ink);font:14px/1.5 var(--ui);overflow:hidden;position:relative}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(900px 600px at 50% 45%,#000 10%,transparent 78%);
+  mask-image:radial-gradient(900px 600px at 50% 45%,#000 10%,transparent 78%)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 220px 60px rgba(0,0,0,.75)}
+
+.top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;
+  gap:14px;padding:0 20px;z-index:40;
+  background:linear-gradient(180deg,rgba(5,7,13,.92),rgba(5,7,13,0))}
+.brand{font-weight:800;font-size:18px}
+.brand span{background:linear-gradient(90deg,var(--red),var(--orange),var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.sep{width:1px;height:20px;background:var(--line)}
+.sub{color:var(--dim);font-size:12.5px}
+.badges{margin-left:auto;display:flex;gap:8px}
+.badge{font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:5px 11px;
+  border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--dim);
+  display:flex;align-items:center;gap:7px}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+.badge.on{color:var(--mint);border-color:rgba(95,240,168,.3)}
+.badge.on .dot{background:var(--mint);box-shadow:0 0 10px var(--mint)}
+
+.stage{position:fixed;inset:56px 0 150px 0;display:grid;
+  grid-template-columns:1fr minmax(420px,560px) 1fr;align-items:center;z-index:10;
+  transition:padding .3s}
+/* Reserve the rail's gutter, otherwise the payee card sits underneath it and the
+   name is clipped — which is the one thing on this screen that must stay readable. */
+@media (min-width:1181px){ .stage{padding-right:318px} }
+#beams{position:fixed;inset:0;pointer-events:none;z-index:5}
+
+.orbwrap{position:relative;display:grid;justify-items:center;justify-self:center;gap:0}
+#orb{display:block;filter:drop-shadow(0 0 60px rgba(241,137,24,.22))}
+/* The caption sits BELOW the orb, not across it: over the core it was unreadable —
+   white-hot centre behind pale gold text. A glass pill keeps it legible in every state. */
+.orbtext{margin-top:-46px;display:grid;justify-items:center;text-align:center;gap:7px;
+  pointer-events:none;z-index:12}
+.state{font:800 13px var(--mono);letter-spacing:3.4px;text-transform:uppercase;
+  color:#09121f;padding:7px 18px;border-radius:999px;
+  background:linear-gradient(90deg,var(--gold2),var(--gold));
+  box-shadow:0 8px 34px -8px rgba(251,192,7,.7)}
+.sayline{font-size:13px;color:var(--ink);max-width:340px;padding:7px 15px;border-radius:12px;
+  background:rgba(5,8,14,.72);border:1px solid var(--line);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+
+/* The OUTER element owns the drift so it never fights the reveal, which lives on
+   .inner. Two animations on one transform would cancel each other out. */
+.agent{justify-self:center;width:240px;position:relative;perspective:900px;
+  animation:drift 6.5s ease-in-out infinite}
+.agent.them{animation-delay:-3.2s}
+@keyframes drift{50%{transform:translateY(-14px)}}
+
+.inner{padding:18px;border-radius:18px;border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
+  -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+  transform-style:preserve-3d;animation:revolve 9s ease-in-out infinite;
+  transition:border-color .45s, box-shadow .45s}
+.agent.them .inner{animation-delay:-4.5s}
+/* a slow turn on its own axis — the card is "alive", not a static panel */
+@keyframes revolve{
+  0%,100%{transform:rotateY(-7deg) rotateX(2deg)}
+  50%    {transform:rotateY( 7deg) rotateX(-2deg)}}
+
+.agent.hot .inner{border-color:rgba(251,192,7,.55);
+  box-shadow:0 0 0 1px rgba(251,192,7,.25),0 18px 60px -18px rgba(241,137,24,.6)}
+.agent.signed .inner{border-color:rgba(95,240,168,.5);
+  box-shadow:0 0 0 1px rgba(95,240,168,.22),0 16px 50px -20px rgba(40,167,69,.55)}
+
+/* ---- the payee does not exist until he is named ---- */
+.agent.them .inner{opacity:0;transform:scale(.6) rotateY(-55deg);filter:blur(10px)}
+.agent.them.appear .inner{
+  animation:materialise 1s cubic-bezier(.16,.9,.24,1) forwards,
+            revolve 9s 1.05s ease-in-out infinite}
+@keyframes materialise{
+  0%  {opacity:0;transform:scale(.6) rotateY(-55deg);filter:blur(10px)}
+  55% {opacity:1;transform:scale(1.06) rotateY(6deg);filter:blur(0)}
+  100%{opacity:1;transform:rotateY(-7deg) rotateX(2deg);filter:blur(0)}}
+/* portal ring that snaps open as he arrives */
+.portal{position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  border:2px solid var(--sky,#7fd1ff);opacity:0}
+.agent.them.appear .portal{animation:portal .95s cubic-bezier(.2,.9,.2,1)}
+@keyframes portal{
+  0%  {opacity:0;transform:scale(.4);box-shadow:0 0 0 0 rgba(127,209,255,.55)}
+  35% {opacity:1}
+  100%{opacity:0;transform:scale(1.35);box-shadow:0 0 60px 14px rgba(127,209,255,0)}}
+.awaiting{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
+  color:var(--faint);font:600 12px var(--ui);letter-spacing:.4px;text-align:center;
+  opacity:1;transition:opacity .35s}
+.agent.them.appear .awaiting{opacity:0}
+.av{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;
+  font-weight:800;font-size:17px;color:#1a1206;margin-bottom:12px;
+  background:linear-gradient(135deg,var(--gold),var(--orange))}
+.agent.them .av{background:linear-gradient(135deg,#7fd1ff,#4a90d9);color:#06172a}
+.aname{font-weight:700;font-size:15px}
+.arole{color:var(--dim);font-size:12px;margin-top:2px}
+.akey{font:500 10.5px var(--mono);color:var(--faint);margin-top:10px;word-break:break-all}
+.sig{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:11.5px;
+  color:var(--faint);opacity:.55;transition:.4s}
+.sig .tick{width:16px;height:16px;border-radius:50%;border:1.5px solid currentColor;
+  display:grid;place-items:center;font-size:9px}
+.agent.signed .sig{color:var(--mint);opacity:1}
+
+.monitor{position:fixed;top:92px;left:50%;transform:translateX(-50%);z-index:20;
+  padding:11px 20px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(10,15,26,.75);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  display:flex;align-items:center;gap:11px;transition:.4s}
+.monitor.hot{border-color:rgba(251,192,7,.6);box-shadow:0 0 34px -6px rgba(241,137,24,.65)}
+.monitor .ring{width:10px;height:10px;border-radius:50%;background:var(--faint)}
+.monitor.hot .ring{background:var(--gold);box-shadow:0 0 14px var(--gold);
+  animation:beat 1.1s ease-in-out infinite}
+@keyframes beat{50%{transform:scale(1.5)}}
+.mlabel{font-weight:700;font-size:13px}
+.msub{color:var(--dim);font:500 11px var(--mono)}
+
+.seal{position:fixed;top:146px;left:50%;transform:translateX(-50%) scale(.85);z-index:21;
+  padding:8px 18px;border-radius:999px;font:700 11.5px var(--mono);letter-spacing:1.4px;
+  text-transform:uppercase;color:#07210f;background:linear-gradient(90deg,var(--mint),#b8f5d4);
+  opacity:0;transition:.5s cubic-bezier(.2,.8,.2,1);pointer-events:none;
+  box-shadow:0 10px 40px -10px rgba(95,240,168,.7)}
+.seal.show{opacity:1;transform:translateX(-50%) scale(1)}
+
+.console{position:fixed;left:0;right:0;bottom:0;z-index:40;padding:16px 20px 20px;
+  background:linear-gradient(0deg,rgba(5,7,13,.96) 40%,rgba(5,7,13,0))}
+.bar{max-width:880px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.inp{flex:1}
+.inp input{width:100%;padding:15px 18px;border-radius:14px;color:var(--ink);font-size:15px;
+  background:rgba(255,255,255,.055);border:1px solid var(--line);outline:none}
+.inp input:focus{border-color:rgba(241,137,24,.6);box-shadow:0 0 0 4px rgba(241,137,24,.12)}
+button{border:0;cursor:pointer;border-radius:14px;font:700 14.5px var(--ui);padding:15px 24px;
+  color:#2a1b00;background:linear-gradient(135deg,var(--gold),var(--orange));transition:.2s}
+button:hover{filter:brightness(1.08)} button:disabled{opacity:.45;cursor:default}
+button.ghost{background:rgba(255,255,255,.07);color:var(--ink);border:1px solid var(--line)}
+button.ghost.rec{background:rgba(239,26,35,.16);border-color:rgba(239,26,35,.55);color:#ff9ca0;
+  animation:recp 1.2s ease-in-out infinite}
+@keyframes recp{50%{box-shadow:0 0 0 8px rgba(239,26,35,.08)}}
+.hint{max-width:880px;margin:10px auto 0;color:var(--faint);font-size:12px;text-align:center}
+.out{max-width:880px;margin:10px auto 0;padding:12px 16px;border-radius:12px;
+  font-size:13.5px;display:none}
+.out.ok{display:block;background:rgba(40,167,69,.13);border:1px solid rgba(95,240,168,.32);color:#b8f5d4}
+.out.bad{display:block;background:rgba(239,26,35,.12);border:1px solid rgba(239,26,35,.35);color:#ffb3b6}
+
+.rail{position:fixed;right:18px;top:92px;width:290px;max-height:58vh;overflow:auto;z-index:30;
+  border:1px solid var(--line);border-radius:14px;background:rgba(10,15,26,.6);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:8px 0}
+.rail h4{margin:0;padding:8px 14px 10px;font:700 10.5px var(--ui);letter-spacing:1.4px;
+  text-transform:uppercase;color:var(--faint)}
+.ev{padding:7px 14px;border-top:1px solid rgba(255,255,255,.05)}
+.ev .n{font:700 11.5px var(--mono);color:var(--gold2);display:block}
+.ev .d{color:var(--dim);font-size:11.5px;word-break:break-word}
+.rail::-webkit-scrollbar{width:6px}
+.rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:3px}
+@media (max-width:1180px){ .rail{display:none} }
+@media (max-width:900px){ .stage{grid-template-columns:1fr} .agent{display:none} }
+
+/* ── PIN sheet ────────────────────────────────────────────────────────────────────────
+   The voice send screen moved real money with no PIN at all, while the chat screen asked
+   for one on every payment — the same wallet, the same amounts, a different page. This is
+   the same gate, wearing this page's night palette rather than the chat's light one. */
+.pinwrap{position:fixed;inset:0;z-index:200;display:flex;align-items:center;
+  justify-content:center;background:rgba(3,5,10,.72);backdrop-filter:blur(6px);
+  animation:pinfade .18s ease}
+@keyframes pinfade{from{opacity:0}to{opacity:1}}
+.pinsheet{width:min(360px,92vw);background:linear-gradient(180deg,#121826,#0b111c);
+  border:1px solid var(--line);border-radius:22px;padding:22px 22px 24px;
+  box-shadow:0 30px 90px rgba(0,0,0,.7);animation:pinup .22s cubic-bezier(.2,.9,.3,1)}
+@keyframes pinup{from{transform:translateY(18px) scale(.98);opacity:.3}to{transform:none;opacity:1}}
+.pinhead{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.pinhead b{font-size:15px;font-weight:650;color:var(--ink)}
+.pinlock{width:16px;height:16px;border-radius:4px;border:1.8px solid var(--gold);
+  position:relative}
+.pinlock::before{content:"";position:absolute;left:3px;top:-6px;width:8px;height:7px;
+  border:1.8px solid var(--gold);border-bottom:none;border-radius:4px 4px 0 0}
+.pinsub{font-size:12px;color:var(--dim);margin:0 0 14px 25px}
+.pinamt{text-align:center;font-size:13px;color:var(--dim);margin:2px 0 14px}
+.pinamt b{color:var(--ink);font-size:16px;font-variant-numeric:tabular-nums}
+.pindots{display:flex;gap:13px;justify-content:center;margin:2px 0 14px}
+.pindot{width:13px;height:13px;border-radius:50%;border:1.7px solid rgba(255,255,255,.28);
+  transition:all .14s}
+.pindot.on{background:var(--gold);border-color:var(--gold);transform:scale(1.14);
+  box-shadow:0 0 12px rgba(251,192,7,.5)}
+.pinsheet.bad{animation:pinshake .3s}
+.pinsheet.bad .pindot{border-color:#ff8a8a}
+@keyframes pinshake{10%,90%{transform:translateX(-3px)}30%,70%{transform:translateX(5px)}
+  50%{transform:translateX(-5px)}}
+.pinerr{font-size:12px;color:#ff8a8a;text-align:center;margin:-6px 0 12px;min-height:15px}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.pinkey{padding:15px 0;border-radius:14px;border:1px solid var(--line);
+  background:rgba(255,255,255,.05);color:var(--ink);font-size:19px;font-weight:550;
+  cursor:pointer;font-variant-numeric:tabular-nums;transition:background .12s,transform .06s;
+  -webkit-tap-highlight-color:transparent}
+.pinkey:active{background:rgba(255,255,255,.12);transform:scale(.95)}
+.pinkey.muted{background:none;border-color:transparent;font-size:13px;color:var(--dim)}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">Pay<span>I</span></div>
+  <div class="sep"></div>
+  <div class="sub">voice proposes · mandate + TPM authorise · OpenWallet settles</div>
+  <div class="badges">
+    <span class="badge" id="b-stt"><span class="dot"></span><span>speech</span></span>
+    <span class="badge" id="b-tpm"><span class="dot"></span><span>TPM</span></span>
+    <span class="badge" id="b-link"><span class="dot"></span><span>monitor</span></span>
+  </div>
+</div>
+
+<svg id="beams"></svg>
+
+<div class="monitor" id="monitor">
+  <span class="ring"></span><span class="mlabel">Monitor</span>
+  <span class="msub" id="mstate">idle</span>
+</div>
+<div class="seal" id="seal">mandate · both signatures</div>
+
+<div class="stage">
+  <div class="agent me" id="ag-me">
+    <div class="inner">
+      <div class="av">SU</div>
+      <div class="aname">Sagar Uniyal</div>
+      <div class="arole">payer agent · agt_sagar</div>
+      <div class="akey">ed25519 · a516af75…</div>
+      <div class="sig"><span class="tick">✓</span><span>signature on mandate</span></div>
+    </div>
+  </div>
+
+  <div class="orbwrap">
+    <canvas id="orb" width="520" height="520"></canvas>
+    <div class="orbtext">
+      <div class="state" id="state">idle</div>
+      <div class="sayline" id="sayline">say “send 20 dirhams to alex”</div>
+    </div>
+  </div>
+
+  <div class="agent them" id="ag-them">
+    <span class="portal"></span>
+    <div class="awaiting">payee appears<br>once you name them</div>
+    <div class="inner">
+      <div class="av">VD</div>
+      <div class="aname">Alex Morgan</div>
+      <div class="arole">payee agent · agt_alex</div>
+      <div class="akey">ed25519 · 152958c3…</div>
+      <div class="sig"><span class="tick">✓</span><span>signature on mandate</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="console">
+  <div class="bar">
+    <div class="inp"><input id="s" value="send 20 dirhams to alex morgan" autocomplete="off"></div>
+    <button class="ghost" id="mic">● Speak</button>
+    <button id="go">Send</button>
+  </div>
+  <div class="out" id="out"></div>
+  <div class="hint">Nothing the voice says can authorise. A mis-hearing becomes a refusal, never a payment.</div>
+</div>
+
+<aside class="rail"><h4>live trace</h4><div id="rail"></div></aside>
+
+
+<div class="pinwrap" id="pinwrap" style="display:none">
+  <div class="pinsheet" id="pinsheet">
+    <div class="pinhead"><i class="pinlock"></i><b id="pintitle">Enter your PIN to confirm.</b></div>
+    <div class="pinsub">Your 4-digit OpenWallet PIN</div>
+    <div class="pinamt" id="pinamt"></div>
+    <div class="pindots">
+      <i class="pindot"></i><i class="pindot"></i><i class="pindot"></i><i class="pindot"></i>
+    </div>
+    <div class="pinerr" id="pinerr"></div>
+    <button class="pinkey muted" id="pinface" style="display:none;width:100%;
+      margin:-4px 0 10px;border:1px solid var(--line);background:rgba(255,255,255,.05)">
+      Use Face ID</button>
+    <div class="pinpad" id="pinpad">
+      <button class="pinkey">1</button><button class="pinkey">2</button><button class="pinkey">3</button>
+      <button class="pinkey">4</button><button class="pinkey">5</button><button class="pinkey">6</button>
+      <button class="pinkey">7</button><button class="pinkey">8</button><button class="pinkey">9</button>
+      <button class="pinkey muted" data-act="cancel">Cancel</button>
+      <button class="pinkey">0</button>
+      <button class="pinkey muted" data-act="del">Delete</button>
+    </div>
+  </div>
+</div>
+<script src="/faceid.js"></script>
+<script>
+// Resolve API paths relative to the page so the demo also works behind a
+// reverse-proxy prefix such as /payi/ without rewriting anything.
+const BASE = new URL('.', location.href).pathname;
+// ══════════════════ the orb ══════════════════
+const cv = document.getElementById('orb'), cx = cv.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+cv.width = 520 * DPR; cv.height = 520 * DPR;
+cv.style.width = '520px'; cv.style.height = '520px';
+cx.scale(DPR, DPR);
+const R = 260;
+
+let t = 0, amp = 0, ampTarget = 0, mode = 'idle', flash = 0;
+const MOOD = {
+  idle:    ['#f18918', '#fbc007', .35],
+  listen:  ['#ef1a23', '#fbc007', 1.0],
+  think:   ['#f18918', '#ffe08a', .75],
+  mandate: ['#fbc007', '#5ff0a8', .95],
+  send:    ['#e5472c', '#f18918', .90],
+  ok:      ['#28a745', '#5ff0a8', .80],
+  bad:     ['#ef1a23', '#ff7a7a', .80],
+};
+const parts = Array.from({length: 90}, () => ({
+  a: Math.random() * Math.PI * 2,
+  r: 120 + Math.random() * 110,
+  s: (Math.random() * .5 + .25) * (Math.random() < .5 ? -1 : 1),
+  z: Math.random() * .8 + .35,
+}));
+
+function ring(r, w, col, alpha, dash, rot){
+  cx.save(); cx.translate(R, R); cx.rotate(rot);
+  cx.beginPath(); cx.arc(0, 0, r, 0, Math.PI * 2);
+  cx.strokeStyle = col; cx.globalAlpha = alpha; cx.lineWidth = w;
+  if (dash) cx.setLineDash(dash);
+  cx.stroke(); cx.restore();
+}
+
+function draw(){
+  t += .016;
+  amp += (ampTarget - amp) * .12;
+  flash *= .94;
+  const [c1, c2, energy] = MOOD[mode] || MOOD.idle;
+  const pulse = 1 + Math.sin(t * 1.7) * .02 + amp * .10;
+  cx.clearRect(0, 0, 520, 520);
+
+  const g = cx.createRadialGradient(R, R, 10, R, R, 190 * pulse);
+  g.addColorStop(0, c2 + 'dd'); g.addColorStop(.28, c1 + '70');
+  g.addColorStop(.62, c1 + '18'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = g; cx.beginPath(); cx.arc(R, R, 200 * pulse, 0, 7); cx.fill();
+
+  cx.save(); cx.translate(R, R);
+  const ir = 54 + amp * 16 + Math.sin(t * 2.3) * 2.5;
+  const ig = cx.createRadialGradient(0, -ir * .3, 2, 0, 0, ir);
+  ig.addColorStop(0, '#ffffff'); ig.addColorStop(.35, c2); ig.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = ig; cx.globalAlpha = .95;
+  cx.beginPath(); cx.arc(0, 0, ir, 0, 7); cx.fill(); cx.restore();
+
+  ring(96,  1.2, c2, .30 * energy, null,     t * .50);
+  ring(118, 2.4, c1, .55 * energy, [38, 20], -t * .35);
+  ring(140, 1.0, c2, .22 * energy, [4, 11],  t * .80);
+  ring(176, 3.0, c1, .30 * energy, [2, 26],  -t * .22);
+
+  cx.save(); cx.translate(R, R); cx.rotate(t * .12);
+  for (let i = 0; i < 72; i++){
+    const a = (i / 72) * Math.PI * 2, on = i % 6 === 0, len = on ? 13 : 6, rr = 200;
+    cx.globalAlpha = (on ? .5 : .2) * energy;
+    cx.strokeStyle = c2; cx.lineWidth = on ? 1.8 : 1;
+    cx.beginPath();
+    cx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    cx.lineTo(Math.cos(a) * (rr + len), Math.sin(a) * (rr + len));
+    cx.stroke();
+  }
+  cx.restore();
+
+  cx.save(); cx.translate(R, R); cx.beginPath();
+  for (let i = 0; i <= 200; i++){
+    const a = (i / 200) * Math.PI * 2;
+    const wob = Math.sin(a * 7 + t * 4) * (3 + amp * 26)
+              + Math.sin(a * 13 - t * 2.4) * (2 + amp * 14);
+    const rr = 218 + wob, x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+    i ? cx.lineTo(x, y) : cx.moveTo(x, y);
+  }
+  cx.closePath();
+  cx.strokeStyle = c2; cx.globalAlpha = .34 + amp * .5;
+  cx.lineWidth = 1.6 + amp * 2.2; cx.stroke(); cx.restore();
+
+  cx.save(); cx.translate(R, R);
+  parts.forEach(p => {
+    p.a += p.s * .004 * (1 + amp);
+    const x = Math.cos(p.a) * p.r, y = Math.sin(p.a) * p.r * .34;
+    cx.globalAlpha = p.z * (.3 + energy * .5);
+    cx.fillStyle = c2;
+    cx.beginPath(); cx.arc(x, y, 1.5 * p.z + amp * 1.4, 0, 7); cx.fill();
+  });
+  cx.restore();
+
+  if (flash > .01){
+    cx.save(); cx.translate(R, R);
+    cx.strokeStyle = c2; cx.globalAlpha = flash * .8; cx.lineWidth = 3;
+    cx.beginPath(); cx.arc(0, 0, 150 + (1 - flash) * 110, 0, 7); cx.stroke();
+    cx.restore();
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+
+function setMode(m, label, say){
+  mode = m; flash = 1;
+  document.getElementById('state').textContent = label || m;
+  if (say !== undefined) document.getElementById('sayline').textContent = say;
+}
+
+// ══════════════════ beams ══════════════════
+const svg = document.getElementById('beams');
+const SVGNS = 'http://www.w3.org/2000/svg';
+const centre = el => { const r = el.getBoundingClientRect();
+  return {x: r.left + r.width / 2, y: r.top + r.height / 2}; };
+
+function beam(fromEl, toEl, colour, dur){
+  dur = dur || 1100;
+  const a = centre(fromEl), b = centre(toEl);
+  const mx = (a.x + b.x) / 2, my = Math.min(a.y, b.y) - 70;
+  const p = document.createElementNS(SVGNS, 'path');
+  p.setAttribute('d', 'M' + a.x + ' ' + a.y + ' Q' + mx + ' ' + my + ' ' + b.x + ' ' + b.y);
+  p.setAttribute('fill', 'none'); p.setAttribute('stroke', colour);
+  p.setAttribute('stroke-width', '2.2'); p.setAttribute('stroke-linecap', 'round');
+  p.style.filter = 'drop-shadow(0 0 8px ' + colour + ')';
+  svg.appendChild(p);
+  const len = p.getTotalLength();
+  p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+  p.animate([{strokeDashoffset: len}, {strokeDashoffset: 0}],
+            {duration: dur, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards'});
+  setTimeout(() => {
+    const f = p.animate([{opacity: 1}, {opacity: 0}], {duration: 600, fill: 'forwards'});
+    f.onfinish = () => p.remove();
+  }, dur + 700);
+
+  const dot = document.createElementNS(SVGNS, 'circle');
+  dot.setAttribute('r', '4'); dot.setAttribute('fill', colour);
+  dot.style.filter = 'drop-shadow(0 0 10px ' + colour + ')';
+  svg.appendChild(dot);
+  const t0 = performance.now();
+  (function run(now){
+    const k = Math.min(1, (now - t0) / dur);
+    const pt = p.getPointAtLength(len * k);
+    dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+    k < 1 ? requestAnimationFrame(run) : dot.remove();
+  })(t0);
+}
+
+function sparkle(el, colour, n){
+  const r = el.getBoundingClientRect();
+  const cx0 = r.left + r.width / 2, cy0 = r.top + r.height / 2;
+  for (let i = 0; i < (n || 22); i++){
+    const a = Math.random() * Math.PI * 2, d = 110 + Math.random() * 150;
+    const sx = cx0 + Math.cos(a) * d, sy = cy0 + Math.sin(a) * d * .8;
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('r', (1.4 + Math.random() * 2.4).toFixed(1));
+    c.setAttribute('fill', colour);
+    c.style.filter = 'drop-shadow(0 0 7px ' + colour + ')';
+    svg.appendChild(c);
+    const dur = 620 + Math.random() * 420, t0 = performance.now() + Math.random() * 220;
+    (function run(now){
+      const k = (now - t0) / dur;
+      if (k < 0){ requestAnimationFrame(run); return; }
+      if (k >= 1){ c.remove(); return; }
+      const e = 1 - Math.pow(1 - k, 3);
+      c.setAttribute('cx', sx + (cx0 - sx) * e);
+      c.setAttribute('cy', sy + (cy0 - sy) * e);
+      c.setAttribute('opacity', (1 - k) * .95);
+      requestAnimationFrame(run);
+    })(performance.now());
+  }
+}
+
+const elMe = document.getElementById('ag-me'),
+      elThem = document.getElementById('ag-them'),
+      elMon = document.getElementById('monitor');
+
+// ══════════════════ wiring ══════════════════
+const out = document.getElementById('out'), railEl = document.getElementById('rail'),
+      inp = document.getElementById('s'), go = document.getElementById('go');
+let idleTimer = null;   // the post-run return to idle; cleared when a new run starts
+
+function reset(){
+  // On connect the server replays the previous run's trace, whose trailing 'done'
+  // schedules a return to idle. Without clearing it that stale timer fires in the
+  // middle of the NEXT payment and blanks the state mid-flow.
+  if (idleTimer){ clearTimeout(idleTimer); idleTimer = null; }
+  railEl.innerHTML = ''; out.className = 'out'; out.textContent = '';
+  elMe.classList.remove('hot', 'signed');
+  elThem.classList.remove('hot', 'signed', 'appear');   // payee vanishes again
+  elMon.classList.remove('hot');
+  document.getElementById('seal').classList.remove('show');
+  document.getElementById('mstate').textContent = 'idle';
+}
+
+async function send(sentence){
+  if (!sentence) return;
+  reset(); inp.value = sentence; go.disabled = true;
+  setMode('think', 'thinking', '“' + sentence + '”');
+  try{
+    // A refusal is a real answer, not a failure -- if the amount could not be read the
+    // server sends accepted:false and NOTHING runs. Say so, instead of leaving Jarvis
+    // thinking forever while the payer assumes the payment is on its way.
+    const r = await fetch(BASE + 'api/send', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({sentence: sentence})});
+    const j = await r.json().catch(() => ({accepted: true}));
+    // needPin also arrives as accepted:false, and it is NOT a refusal — the payment is
+    // held, waiting for four digits. Checked first or the sheet never opens and the
+    // screen says "refused" about a payment that is simply paused.
+    if (j && j.needPin){
+      setMode('mandate', 'PIN', 'waiting for your PIN');
+      pinOpen(j.confirming, j.say);
+    } else if (j && j.accepted === false){
+      setMode('bad', 'refused', j.error || 'could not read that'); go.disabled = false;
+    }
+  }catch(e){
+    setMode('bad', 'offline', 'could not reach the demo server'); go.disabled = false;
+  }
+}
+go.onclick = () => send(inp.value.trim());
+inp.addEventListener('keydown', e => { if (e.key === 'Enter') send(inp.value.trim()); });
+
+// ---- speech: raw PCM -> 16 kHz mono WAV, with onset/hangover VAD ----
+// MediaRecorder was the wrong tool. whisper-cli reads flac/mp3/ogg/wav and NOT webm,
+// which is exactly what Chrome records, so every Chrome utterance reached whisper as
+// an unreadable blob and came back empty ("not heard"). Capturing raw PCM and writing
+// the WAV here removes the codec from the problem entirely.
+//
+// The VAD mirrors the GlassLink pipeline that worked: calibrate the noise floor, wait
+// for a real onset, then stop after a hangover of silence — so you never have to press
+// stop. Peak-normalising before upload matters too: whisper is level-sensitive and
+// invents text when fed something quiet.
+const mic = document.getElementById('mic');
+const RATE = 16000, FRAME = 4096;
+const ONSET_FRAMES = 2, HANGOVER_FRAMES = 12, PREROLL = 4, MAX_SECONDS = 12;
+let listening = false, stopAudio = null;
+
+fetch(BASE + 'api/stt/available').then(r => r.json()).then(d => {
+  const b = document.getElementById('b-stt');
+  b.lastChild.textContent = d.available ? 'whisper ready' : 'speech unavailable';
+  if (d.available) b.classList.add('on');
+}).catch(() => {});
+
+function downsample(buf, from, to){
+  if (to >= from) return buf;
+  const ratio = from / to, out = new Float32Array(Math.round(buf.length / ratio));
+  for (let i = 0; i < out.length; i++){
+    const lo = Math.floor(i * ratio), hi = Math.min(buf.length, Math.floor((i + 1) * ratio));
+    let sum = 0, n = 0;
+    for (let j = lo; j < hi; j++){ sum += buf[j]; n++; }
+    out[i] = n ? sum / n : 0;
+  }
+  return out;
+}
+
+function wavBlob(samples, rate){
+  let peak = 0;
+  for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+  const gain = peak > 0.001 ? Math.min(0.72 / peak, 12) : 1;   // capped: don't amplify silence
+  const buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); str(8, 'WAVEfmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++){
+    const x = Math.max(-1, Math.min(1, samples[i] * gain));
+    v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true);
+  }
+  return new Blob([buf], {type: 'audio/wav'});
+}
+
+async function transcribeAndSend(frames, rate){
+  if (!frames.length){ setMode('bad', 'not heard', 'nothing was captured'); return; }
+  let total = 0; frames.forEach(f => total += f.length);
+  const all = new Float32Array(total);
+  let o = 0; frames.forEach(f => { all.set(f, o); o += f.length; });
+  setMode('think', 'transcribing', 'whisper is listening back…');
+  const blob = wavBlob(downsample(all, rate, RATE), RATE);
+  try{
+    const r = await fetch(BASE + 'api/stt', {method: 'POST',
+      headers: {'Content-Type': 'audio/wav'}, body: blob});
+    const d = await r.json();
+    const text = (d.text || '').replace(/\[.*?\]/g, '').trim();
+    if (d.ok && text) send(text);
+    else {
+      setMode('bad', 'not heard', 'say it once more');
+      out.className = 'out bad';
+      out.textContent = d.error || 'Nothing recognisable in that — try again, a little closer.';
+    }
+  }catch(e){ setMode('bad', 'stt failed', String(e)); }
+}
+
+async function startListening(){
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({audio: {
+          echoCancellation: true, noiseSuppression: true, autoGainControl: true}}); }
+  catch(e){
+    out.className = 'out bad';
+    out.textContent = e.name === 'NotAllowedError'
+      ? 'Microphone blocked — allow it in the address bar, then press Speak again.'
+      : 'Microphone unavailable: ' + e.name;
+    return;
+  }
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const src = ctx.createMediaStreamSource(stream);
+  const node = ctx.createScriptProcessor(FRAME, 1, 1);
+  const frames = [], pre = [];
+  let floor = null, cal = [], started = false, onset = 0, quiet = 0, done = false;
+
+  const finish = () => {
+    if (done) return; done = true;
+    listening = false;
+    mic.classList.remove('rec'); mic.textContent = '● Speak';
+    ampTarget = 0;
+    node.disconnect(); src.disconnect();
+    stream.getTracks().forEach(t => t.stop());
+    const rate = ctx.sampleRate;
+    ctx.close();
+    transcribeAndSend(frames, rate);
+  };
+  stopAudio = finish;
+
+  node.onaudioprocess = e => {
+    if (done) return;
+    const inp = e.inputBuffer.getChannelData(0);
+    const f = new Float32Array(inp);           // copy: the buffer is reused
+    let sum = 0;
+    for (let i = 0; i < f.length; i++) sum += f[i] * f[i];
+    const level = Math.sqrt(sum / f.length);
+    ampTarget = Math.min(1, level * 9);
+
+    if (floor === null){                        // ~5 frames of room tone first
+      cal.push(level);
+      if (cal.length >= 5){
+        cal.sort((a, b) => a - b);
+        floor = cal[Math.floor(cal.length / 2)];
+      }
+      return;
+    }
+    const thr = Math.max(floor * 3.5, 0.012);
+
+    if (!started){
+      pre.push(f); if (pre.length > PREROLL) pre.shift();
+      if (level > thr){
+        if (++onset >= ONSET_FRAMES){
+          started = true; frames.push(...pre);
+          setMode('listen', 'listening', 'go ahead');
+        }
+      } else onset = 0;
+      return;
+    }
+    frames.push(f);
+    if (level > thr) quiet = 0;
+    else if (++quiet >= HANGOVER_FRAMES) return finish();     // auto-stop on silence
+    if (frames.length * FRAME / ctx.sampleRate > MAX_SECONDS) finish();
+  };
+
+  src.connect(node); node.connect(ctx.destination);
+  listening = true;
+  mic.classList.add('rec'); mic.textContent = '■ Listening';
+  setMode('listen', 'waiting', 'speak when ready — it stops on its own');
+}
+
+mic.onclick = () => {
+  if (listening){ stopAudio && stopAudio(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    out.className = 'out bad';
+    out.textContent = 'The microphone needs a secure origin — open this page as '
+      + 'http://localhost:' + location.port + '/send';
+    return;
+  }
+  out.className = 'out'; out.textContent = '';
+  startListening();
+};
+
+// ---- live events ----
+const es = new EventSource(BASE + 'events');
+es.onopen  = () => document.getElementById('b-link').classList.add('on');
+es.onerror = () => {
+  document.getElementById('b-link').classList.remove('on');
+  // A frozen trace and a stalled payment look identical on screen, and they are not the
+  // same thing at all: the payment carries on server-side whatever this browser does.
+  // Saying so is the difference between "it didn't go through" and "I stopped being told".
+  if (!out.textContent){
+    out.className = 'out';
+    out.textContent = 'Lost the live feed — reconnecting. The payment is still running on '
+                    + 'the server; this page will catch up.';
+  }
+};
+es.onmessage = e => {
+  const ev = JSON.parse(e.data);
+  // History replayed on connect is for the trace list only. Without this a refresh
+  // re-ran payee.resolve and the payee was already standing there before you spoke.
+  if (ev.replay){
+    if (ev.kind !== 'done'){
+      const d = document.createElement('div');
+      d.className = 'ev';
+      const n = document.createElement('span'); n.className = 'n'; n.textContent = ev.kind;
+      const v = document.createElement('span'); v.className = 'd'; v.textContent = ev.detail;
+      d.appendChild(n); d.appendChild(v); railEl.prepend(d);
+    }
+    // Replay used to stop here for EVERYTHING, animations and outcome alike. So a browser
+    // that lost the stream mid-payment reconnected, silently re-listed the trace, and
+    // never said how it ended — which is exactly how a 504 from the API looked like
+    // nothing happening at all. The animations still must not re-run; the RESULT must.
+    if (ev.kind !== 'done' && ev.kind !== 'refused') return;
+  }
+  if (ev.kind !== 'done'){
+    const d = document.createElement('div');
+    d.className = 'ev';
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = ev.kind;
+    const v = document.createElement('span'); v.className = 'd'; v.textContent = ev.detail;
+    d.appendChild(n); d.appendChild(v); railEl.prepend(d);
+  }
+  switch (ev.kind){
+    case 'intent.parse':
+      setMode('think', 'understanding'); break;
+    case 'payee.resolve':
+      // The payee only becomes real once the roster has matched him by name.
+      elThem.classList.add('appear');
+      sparkle(elThem, '#7fd1ff', 26);
+      setTimeout(() => elThem.classList.add('hot'), 900);
+      setMode('think', 'payee matched', ev.detail.replace(/^.*→\s*/, ''));
+      beam(elThem, elMon, '#7fd1ff'); break;
+    case 'mandate.verify':
+      elMon.classList.add('hot');
+      document.getElementById('mstate').textContent = 'verifying';
+      setMode('mandate', 'mandate', 'both signatures');
+      beam(elMe, elMon, '#fbc007');
+      setTimeout(() => beam(elThem, elMon, '#7fd1ff'), 260);
+      setTimeout(() => {
+        elMe.classList.add('signed'); elThem.classList.add('signed');
+        document.getElementById('seal').classList.add('show');
+        document.getElementById('mstate').textContent = 'mandate live';
+      }, 1150);
+      break;
+    case 'tier.decide':
+      setMode('mandate', ev.detail.split(' ')[0].toLowerCase(), ev.detail); break;
+    case 'device.sign':
+      document.getElementById('b-tpm').classList.add('on');
+      setMode('mandate', 'TPM signed', 'device key, sealed to this laptop');
+      beam(elMe, elMon, '#5ff0a8', 800); break;
+    case 'http.request':
+      setMode('send', '→ OpenWallet', 'hitting the real transaction API');
+      document.getElementById('mstate').textContent = 'authorised'; break;
+    case 'transaction.success':
+      setMode('ok', 'settled', ev.detail); break;
+    case 'refused':
+      setMode('bad', 'refused', ev.detail);
+      out.className = 'out bad'; out.textContent = 'Refused — ' + ev.detail; break;
+    case 'done': {
+      let d = {}; try { d = JSON.parse(ev.detail); } catch(_){}
+      if (d.ok && d.data){
+        out.className = 'out ok';
+        out.textContent = 'Sent ' + d.data.amount + ' ' + d.data.currency + ' to '
+          + d.data.receiver + ' · txn ' + d.data.txnId + ' · fee ' + d.data.serviceCharges
+          + ' · total ' + d.data.totalAmount;
+        setMode('ok', 'done', 'txn ' + d.data.txnId);
+      } else if (!out.textContent){
+        out.className = 'out bad';
+        out.textContent = 'Failed — ' + (d.message || 'see the watch screen');
+        setMode('bad', 'failed');
+      }
+      go.disabled = false;
+      idleTimer = setTimeout(() => setMode('idle', 'idle', 'say “send 20 dirhams to alex”'), 7000);
+      break;
+    }
+  }
+};
+
+// ---- PIN ----
+// Nothing here decides anything: the wallet verifies the PIN and the server releases the
+// payment it was already holding. This screen only collects four digits and shows what
+// came back, so a wrong PIN here cannot be talked past by the page.
+const pinWrap = document.getElementById('pinwrap');
+const pinSheet = document.getElementById('pinsheet');
+let pinBuf = '', pinBusy = false;
+
+function pinDraw(){
+  document.querySelectorAll('#pinsheet .pindot').forEach((d, i) =>
+    d.classList.toggle('on', i < pinBuf.length));
+}
+function pinOpen(confirming, say){
+  pinBuf = ''; pinBusy = false; pinDraw();
+  document.getElementById('pinerr').textContent = '';
+  document.getElementById('pinamt').innerHTML = confirming || '';
+  document.getElementById('pintitle').textContent = say || 'Enter your PIN to confirm.';
+  pinWrap.style.display = 'flex';
+  const btn = document.getElementById('pinface');
+  btn.style.display = 'none';
+  if (window.faceIdEnrolled && faceIdEnrolled()){
+    faceIdAvailable().then(ok => { if (ok){ btn.style.display = 'block'; faceTry(); } });
+  }
+}
+function pinClose(){ pinWrap.style.display = 'none'; pinBuf = ''; pinDraw(); }
+
+// ---- Face ID ----
+// It supplies the PIN; it does not replace the check. The wallet still verifies every
+// payment, so a stolen phone with a working face still faces the wallet's own lockout.
+let pinFromFace = false;
+
+async function faceTry(){
+  if (!window.faceIdEnrolled || !faceIdEnrolled()) return false;
+  if (!(await faceIdAvailable())) return false;
+  try{
+    const pin = await faceIdUnlock();
+    pinFromFace = true;
+    pinBuf = pin; pinDraw();
+    await pinSubmit();
+    return true;
+  }catch(e){
+    // Cancelled, or the face did not match. Not an error worth shouting about — the
+    // keypad is right there.
+    pinFromFace = false;
+    document.getElementById('pinerr').textContent = '';
+    return false;
+  }
+}
+
+async function faceOffer(pin){
+  if (!window.faceIdAvailable || faceIdEnrolled()) return;
+  if (!(await faceIdAvailable())) return;
+  if (!confirm('Use Face ID instead of typing your PIN next time?')) return;
+  try{ await faceIdEnrol(pin, 'OpenWallet'); }
+  catch(e){ alert(e.message || 'Could not set up Face ID.'); }
+}
+
+async function pinSubmit(){
+  if (pinBusy) return;
+  pinBusy = true;
+  const used = pinBuf;
+  try{
+    const r = await fetch(BASE + 'api/pin', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({pin: pinBuf, session: 'send-screen'})});
+    const j = await r.json();
+    if (j.ok){
+      pinClose();
+      if (!pinFromFace) await faceOffer(used);     // only ever a PIN the wallet accepted
+      pinFromFace = false;
+      return;                                      // released; the trace takes over
+    }
+    // A remembered PIN the wallet rejected is a stale one — the customer changed it on
+    // the app. Keeping it would fail every payment and burn attempts towards the wallet's
+    // lockout, so it is forgotten and they type the new one once.
+    if (pinFromFace){
+      faceIdForget(); pinFromFace = false;
+      document.getElementById('pinface').style.display = 'none';
+      document.getElementById('pinerr').textContent =
+        'That saved PIN no longer works — type it once and I will remember it again.';
+      pinBuf = ''; pinDraw(); pinBusy = false; return;
+    }
+    // Wrong PIN. Say how it was wrong and whether another try is allowed — a bare "try
+    // again" after the wallet has already locked the PIN is a lie the screen tells.
+    pinBuf = ''; pinDraw();
+    document.getElementById('pinerr').textContent = j.error || 'That did not match.';
+    pinSheet.classList.add('bad');
+    setTimeout(() => pinSheet.classList.remove('bad'), 320);
+    if (j.retry === false){
+      setTimeout(() => { pinClose();
+        setMode('bad', 'PIN', j.error || 'PIN not accepted'); go.disabled = false; }, 1200);
+    }
+  }catch(e){
+    document.getElementById('pinerr').textContent = 'Could not reach the server.';
+  }finally{ pinBusy = false; }
+}
+
+document.getElementById('pinface').onclick = () => faceTry();
+document.getElementById('pinpad').onclick = async (e) => {
+  const b = e.target.closest('.pinkey'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'cancel'){
+    pinClose(); go.disabled = false;
+    setMode('idle', 'cancelled', 'nothing has moved');
+    try{ await fetch(BASE + 'api/pin', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({cancel: true, session: 'send-screen'})}); }catch(_){}
+    return;
+  }
+  if (act === 'del'){ pinBuf = pinBuf.slice(0, -1); pinDraw(); return; }
+  if (pinBuf.length >= 4) return;
+  pinBuf += b.textContent.trim(); pinDraw();
+  if (pinBuf.length === 4) setTimeout(pinSubmit, 140);
+};
+document.addEventListener('keydown', e => {
+  if (pinWrap.style.display === 'none') return;
+  if (/^[0-9]$/.test(e.key) && pinBuf.length < 4){
+    pinBuf += e.key; pinDraw();
+    if (pinBuf.length === 4) setTimeout(pinSubmit, 140);
+  } else if (e.key === 'Backspace'){ pinBuf = pinBuf.slice(0, -1); pinDraw(); }
+});
+</script>
+</body>
+</html>

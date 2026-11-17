@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palm Enrolment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06050b; --panel:#150f24;
+  --card:rgba(255,255,255,.035); --stroke:rgba(255,255,255,.08);
+  --stroke-violet:rgba(168,85,247,.28);
+  --violet:#a855f7; --violet-2:#8b5cf6; --violet-3:#7c5cff; --magenta:#c026d3;
+  --text:#f3effc; --text-2:#b3aacb; --muted:#8a819f;
+  --green:#4ade80; --amber:#fbbf24; --red:#fb7185; --blue:#60a5fa;
+  --r-lg:28px; --r-md:20px; --r-sm:14px; --shell:1180px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text); min-height:100vh;
+  font-family:"Plus Jakarta Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(900px 520px at 12% -8%, rgba(124,92,255,.20), transparent 62%),
+    radial-gradient(760px 460px at 96% 8%, rgba(192,38,211,.14), transparent 60%),
+    radial-gradient(700px 500px at 50% 108%, rgba(168,85,247,.10), transparent 64%);
+}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+.shell{position:relative; z-index:1; max-width:var(--shell); margin:0 auto; padding:26px 16px 80px}
+
+header.top{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px}
+.mark{
+  width:40px; height:40px; border-radius:13px; flex:0 0 auto;
+  background:linear-gradient(135deg,var(--violet),var(--magenta));
+  display:grid; place-items:center; font-size:19px;
+  box-shadow:0 8px 26px rgba(168,85,247,.34);
+}
+h1{font-size:20px; margin:0; letter-spacing:-.3px}
+.sub{font-size:12.5px; color:var(--muted); margin-top:2px}
+.spacer{flex:1}
+.chip{
+  display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:999px;
+  background:var(--card); border:1px solid var(--stroke); font-size:12.5px; color:var(--text-2);
+}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--muted)}
+.dot.on{background:var(--green); box-shadow:0 0 9px var(--green)}
+.dot.warn{background:var(--amber); box-shadow:0 0 9px var(--amber)}
+.dot.off{background:var(--red)}
+
+.card{
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--stroke); border-radius:var(--r-md); padding:20px;
+}
+.card h2{font-size:14px; margin:0 0 4px; letter-spacing:.2px}
+.card .hint{font-size:12.5px; color:var(--muted); line-height:1.55; margin:0 0 14px}
+
+button{
+  font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+  border-radius:12px; padding:10px 16px; border:1px solid var(--stroke-violet);
+  background:var(--card); color:var(--text); transition:.16s;
+}
+button:hover:not(:disabled){background:rgba(168,85,247,.14); border-color:var(--violet)}
+button:disabled{opacity:.42; cursor:not-allowed}
+button.primary{background:linear-gradient(135deg,var(--violet-3),var(--magenta)); border-color:transparent}
+button.primary:hover:not(:disabled){filter:brightness(1.12); background:linear-gradient(135deg,var(--violet-3),var(--magenta))}
+button.ghost{border-color:var(--stroke); font-weight:500}
+button.tiny{padding:5px 10px; font-size:12px; border-radius:9px}
+input,select{
+  font-family:inherit; font-size:13.5px; padding:10px 13px; border-radius:12px;
+  background:rgba(0,0,0,.28); border:1px solid var(--stroke); color:var(--text); outline:none; width:100%;
+}
+input:focus,select:focus{border-color:var(--violet)}
+label.lbl{display:block; font-size:11.5px; text-transform:uppercase; letter-spacing:.9px; color:var(--muted); margin-bottom:6px}
+
+/* ---- gate ---- */
+#gate{max-width:420px; margin:12vh auto}
+#gate .card{padding:26px}
+.err{color:var(--red); font-size:12.5px; min-height:16px; margin-top:8px}
+
+/* ---- tabs ---- */
+.tabs{display:flex; gap:6px; background:var(--card); border:1px solid var(--stroke); border-radius:14px; padding:5px; margin-bottom:18px; flex-wrap:wrap}
+.tab{
+  flex:1; min-width:110px; text-align:center; padding:9px 12px; border-radius:10px;
+  font-size:13px; font-weight:600; color:var(--text-2); cursor:pointer; transition:.16s; border:1px solid transparent;
+}
+.tab:hover{color:var(--text)}
+.tab.active{background:rgba(168,85,247,.16); color:var(--text); border-color:var(--stroke-violet)}
+
+/* ---- layout ---- */
+.split{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:16px; align-items:start}
+@media (max-width:880px){ .split{grid-template-columns:1fr} }
+
+/* ---- camera ---- */
+.stage{position:relative; border-radius:var(--r-md); overflow:hidden; background:#0b0814; border:1px solid var(--stroke); aspect-ratio:4/3}
+.stage video,.stage canvas{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1)}
+.stage video{opacity:.85}
+.stage .veil{
+  position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:24px;
+  background:rgba(6,5,11,.82); font-size:13px; color:var(--text-2); line-height:1.6;
+}
+.ring{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:62%; aspect-ratio:1; border-radius:50%; border:2px dashed rgba(168,85,247,.30); pointer-events:none;
+}
+.ring.armed{border-color:var(--green); border-style:solid; box-shadow:0 0 34px rgba(74,222,128,.22) inset}
+.badge{
+  position:absolute; left:12px; top:12px; padding:6px 11px; border-radius:999px; font-size:12px; font-weight:600;
+  background:rgba(6,5,11,.72); border:1px solid var(--stroke); backdrop-filter:blur(6px);
+}
+
+/* ---- gates ---- */
+.gates{display:grid; gap:7px; margin-top:14px}
+.g{display:flex; align-items:center; gap:10px; font-size:12.5px; padding:8px 11px; border-radius:11px; background:rgba(0,0,0,.22); border:1px solid var(--stroke)}
+.g .gname{flex:1; color:var(--text-2)}
+.g .gval{color:var(--muted); font-size:11.5px}
+.g.ok{border-color:rgba(74,222,128,.26)}
+.g.ok .gname{color:var(--text)}
+.g.bad{border-color:rgba(251,113,133,.22)}
+
+/* ---- samples ---- */
+.samples{display:flex; gap:7px; flex-wrap:wrap; margin-top:12px}
+.slot{width:34px; height:34px; border-radius:10px; border:1px dashed var(--stroke); display:grid; place-items:center; font-size:11px; color:var(--muted)}
+.slot.filled{border:1px solid var(--green); background:rgba(74,222,128,.12); color:var(--green); border-style:solid}
+
+/* ---- readouts ---- */
+.big{font-size:30px; font-weight:700; letter-spacing:-.8px; line-height:1.1}
+.kv{display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:8px 0; border-bottom:1px solid var(--stroke)}
+.kv:last-child{border-bottom:0}
+.kv span:first-child{color:var(--muted)}
+.bar{height:6px; border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:5px}
+.bar i{display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--violet-3),var(--magenta))}
+.verdict{padding:14px 16px; border-radius:var(--r-sm); border:1px solid var(--stroke); background:rgba(0,0,0,.24)}
+.verdict.yes{border-color:rgba(74,222,128,.35); background:rgba(74,222,128,.09)}
+.verdict.no{border-color:rgba(251,113,133,.30); background:rgba(251,113,133,.08)}
+
+table{width:100%; border-collapse:collapse; font-size:12.5px}
+th,td{text-align:left; padding:8px 9px; border-bottom:1px solid var(--stroke)}
+th{font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); font-weight:600}
+td.num{text-align:right}
+.note{font-size:12px; color:var(--muted); line-height:1.6}
+.note b{color:var(--text-2); font-weight:600}
+.roc{width:100%; height:190px; display:block; border-radius:var(--r-sm); background:rgba(0,0,0,.24); border:1px solid var(--stroke)}
+.row{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap}
+.row > *{flex:1; min-width:150px}
+.row > .fixed{flex:0 0 auto; min-width:0}
+.stack{display:grid; gap:14px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===================== sign in ===================== -->
+  <div id="gate" hidden>
+    <header class="top"><div class="mark">✋</div>
+      <div><h1>Palm Enrolment</h1><div class="sub">ACE · hand-geometry factor</div></div>
+    </header>
+    <div class="card">
+      <h2>Sign in</h2>
+      <p class="hint">Enrolment is tied to your ACE agent. Same account as the ACE console.</p>
+      <div class="stack">
+        <div><label class="lbl">Work email</label><input id="loginEmail" type="email" placeholder="you@company.com"></div>
+        <div><label class="lbl">Name</label><input id="loginName" placeholder="optional"></div>
+        <button class="primary" id="loginBtn">Continue</button>
+      </div>
+      <div class="err" id="loginErr"></div>
+      <div class="err" id="pendingMsg" style="color:var(--amber)" hidden></div>
+    </div>
+  </div>
+
+  <!-- ===================== app ===================== -->
+  <div id="app" hidden>
+    <header class="top">
+      <div class="mark">✋</div>
+      <div><h1>Palm Enrolment</h1><div class="sub">Measure the hand-geometry factor on real hands</div></div>
+      <div class="spacer"></div>
+      <span class="chip"><i class="dot" id="camDot"></i><span id="camTxt">camera off</span></span>
+      <span class="chip"><i class="dot on"></i><span id="whoTxt">—</span></span>
+      <button class="ghost tiny" id="logoutBtn">Sign out</button>
+    </header>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="enrol">Enrol a hand</div>
+      <div class="tab" data-tab="identify">Live identify</div>
+      <div class="tab" data-tab="measure">Measure FAR / FRR</div>
+      <div class="tab" data-tab="roster">Enrolled</div>
+    </div>
+
+    <div class="split">
+      <!-- ---------- camera column (shared) ---------- -->
+      <div class="stack">
+        <div class="card" style="padding:14px">
+          <div class="stage" id="stage">
+            <video id="vid" playsinline muted></video>
+            <canvas id="ovl"></canvas>
+            <div class="ring" id="ring"></div>
+            <div class="badge" id="badge">no hand</div>
+            <div class="veil" id="veil">
+              <div>
+                <div style="font-size:15px;color:var(--text);font-weight:600;margin-bottom:8px">Camera needed</div>
+                <div style="max-width:320px;margin:0 auto 16px">Hold your <b>right hand</b> open, palm to the lens, about 40&nbsp;cm away, inside the circle.</div>
+                <button class="primary" id="startBtn">Start camera</button>
+                <div class="note" style="margin-top:12px" id="loadNote"></div>
+              </div>
+            </div>
+          </div>
+          <div class="gates" id="gates"></div>
+        </div>
+      </div>
+
+      <!-- ---------- right column: panels ---------- -->
+      <div class="stack">
+
+        <!-- enrol -->
+        <div class="card" data-panel="enrol">
+          <h2>Enrol a hand</h2>
+          <p class="hint">Use <b>one hand</b> and keep to it — a left hand is not a mirror of a right one here. Capture happens automatically while every gate is green and the hand is still. <b>Rotate and tilt your hand a little between samples</b> — the spread across samples is what tells a genuine wobble apart from a different person.</p>
+          <div class="stack">
+            <div><label class="lbl">Who is this</label><input id="enrolName" placeholder="name"></div>
+            <div class="samples" id="slots"></div>
+            <div class="row">
+              <button class="primary fixed" id="enrolBtn" disabled>Start capture</button>
+              <button class="ghost fixed" id="enrolReset">Clear</button>
+            </div>
+            <div class="note" id="enrolMsg"></div>
+          </div>
+        </div>
+
+        <!-- identify -->
+        <div class="card" data-panel="identify" hidden>
+          <h2>Live identify</h2>
+          <p class="hint">Runs continuously against everyone enrolled. The <b>margin</b> to the runner-up is the number that matters: a hand that fits two people equally well has identified nobody.</p>
+          <div class="verdict" id="idVerdict"><div class="big" id="idWho">—</div><div class="note" id="idWhy">present a hand</div></div>
+          <div style="margin-top:14px">
+            <div class="kv"><span>distance</span><b class="mono" id="idDist">—</b></div>
+            <div class="kv"><span>threshold</span><b class="mono" id="idThr">—</b></div>
+            <div class="kv"><span>margin to runner-up</span><b class="mono" id="idMargin">—</b></div>
+          </div>
+          <div id="idRunners" style="margin-top:12px"></div>
+        </div>
+
+        <!-- measure -->
+        <div class="card" data-panel="measure" hidden>
+          <h2>Measure FAR / FRR</h2>
+          <p class="hint">Say who is <i>actually</i> presenting, then capture. Each presentation is scored against every enrolment — the match becomes a genuine score, the rest become impostor scores. <b>Nothing is trustworthy until several people have done this.</b></p>
+          <div class="stack">
+            <div class="row">
+              <div><label class="lbl">Presenting now</label><select id="truthSel"></select></div>
+              <button class="primary fixed" id="benchBtn" disabled>Capture 10</button>
+            </div>
+            <div class="note" id="benchMsg">No presentations yet.</div>
+            <canvas class="roc" id="roc"></canvas>
+            <div id="benchOut"></div>
+            <div class="row">
+              <button class="ghost fixed" id="benchExport" disabled>Export raw JSON</button>
+              <button class="ghost fixed" id="benchClear">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- roster -->
+        <div class="card" data-panel="roster" hidden>
+          <h2>Enrolled hands</h2>
+          <p class="hint">Templates live in the hub's <span class="mono">handoff.db</span>. Re-enrolling replaces; forgetting deletes.</p>
+          <div id="roster"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {FilesetResolver, HandLandmarker} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+/* ============================ session ============================
+   A key of its OWN, deliberately not the ACE console's "ace2.session". On the deployed box
+   this page and the Go ACE share an origin, so reusing that key would have overwritten the
+   console's session with a token from a different server — signing in here would have signed
+   you out of ACE. Separate key, separate login path, no interference. */
+const SKEY = "palm.session";
+let SESSION = null;
+try { SESSION = JSON.parse(localStorage.getItem(SKEY) || "null"); } catch(e) { SESSION = null; }
+
+const el = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const f2 = n => (n==null || !isFinite(n)) ? "—" : n.toFixed(2);
+
+function authHeaders(extra){
+  const h = extra ? {...extra} : {};
+  if (SESSION){ h["X-Ace-Agent"] = SESSION.agent_id; h["X-Ace-Token"] = SESSION.token; }
+  return h;
+}
+async function api(path, body){
+  const r = await fetch(path, body === undefined
+    ? {headers: authHeaders()}
+    : {method:"POST", headers: authHeaders({"Content-Type":"application/json"}), body: JSON.stringify(body)});
+  if (r.status === 401){ clearSession(); showGate(); throw new Error("signed out"); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || d.reason || ("HTTP " + r.status));
+  return d;
+}
+function clearSession(){ SESSION = null; localStorage.removeItem(SKEY); }
+function showGate(){ el("gate").hidden = false; el("app").hidden = true; }
+function showApp(){ el("gate").hidden = true; el("app").hidden = false; el("whoTxt").textContent = SESSION.name || SESSION.agent_id; }
+
+el("loginBtn").onclick = async () => {
+  const email = el("loginEmail").value.trim(), name = el("loginName").value.trim();
+  const err = el("loginErr"); err.textContent = "";
+  if (!email.includes("@")){ err.textContent = "Enter a valid email."; return; }
+  el("loginBtn").disabled = true;
+  try{
+    const r = await fetch("/palm/login", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({email, name: name || email.split("@")[0]})});
+    const d = await r.json();
+    if (d.status === "pending"){ el("pendingMsg").hidden = false; el("pendingMsg").textContent = d.message || "Waiting for approval."; return; }
+    if (!d.agent_id || !d.token){ err.textContent = d.message || "Sign in failed."; return; }
+    SESSION = {agent_id:d.agent_id, token:d.token, name:d.name || name || email.split("@")[0]};
+    localStorage.setItem(SKEY, JSON.stringify(SESSION));
+    boot();
+  } catch(e){ err.textContent = "Could not reach ACE."; }
+  finally { el("loginBtn").disabled = false; }
+};
+el("logoutBtn").onclick = () => { clearSession(); showGate(); };
+
+/* ============================ tabs ============================ */
+let TAB = "enrol";
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  TAB = t.dataset.tab;
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== TAB);
+  if (TAB === "roster" || TAB === "measure") loadRoster();
+});
+
+/* ============================ hand tracking ============================ */
+let landmarker = null, stream = null, running = false;
+let LAST = null;            // latest frame's features
+let CFG = {threshold:1.5, min_margin:0.35, min_samples:5};
+
+const HAND_CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],        // thumb
+  [0,5],[5,6],[6,7],[7,8],        // index
+  [5,9],[9,10],[10,11],[11,12],   // middle
+  [9,13],[13,14],[14,15],[15,16], // ring
+  [13,17],[17,18],[18,19],[19,20],// pinky
+  [0,17]
+];
+
+async function loadModel(){
+  el("loadNote").textContent = "Loading the hand model (~10 MB, first time only)…";
+  const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  landmarker = await HandLandmarker.createFromOptions(vision, {
+    baseOptions:{
+      modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      delegate:"GPU"
+    },
+    runningMode:"VIDEO", numHands:1,
+    minHandDetectionConfidence:0.6, minHandPresenceConfidence:0.6, minTrackingConfidence:0.6
+  });
+  el("loadNote").textContent = "";
+}
+
+el("startBtn").onclick = async () => {
+  el("startBtn").disabled = true;
+  try{
+    if (!landmarker) await loadModel();
+    stream = await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280}, height:{ideal:960}, facingMode:"user"}});
+    const v = el("vid");
+    v.srcObject = stream; await v.play();
+    el("ovl").width = v.videoWidth; el("ovl").height = v.videoHeight;
+    el("veil").hidden = true;
+    el("camDot").className = "dot on"; el("camTxt").textContent = "tracking";
+    running = true; requestAnimationFrame(tick);
+  } catch(e){
+    el("loadNote").innerHTML = '<span style="color:var(--red)">' + esc(e.message || "Camera blocked") +
+      '</span><br>Camera access needs HTTPS or localhost.';
+    el("startBtn").disabled = false;
+  }
+};
+
+/* --- geometry helpers (frame quality only; the biometric maths lives in Python) --- */
+const sub = (a,b) => ({x:a.x-b.x, y:a.y-b.y, z:a.z-b.z});
+const cross = (a,b) => ({x:a.y*b.z-a.z*b.y, y:a.z*b.x-a.x*b.z, z:a.x*b.y-a.y*b.x});
+const norm = a => Math.hypot(a.x,a.y,a.z);
+const dist = (a,b) => norm(sub(a,b));
+
+/* Quality gates. These decide whether a frame is WORTH enrolling — a blurred, edge-of-frame,
+   half-curled hand produces a signature that describes the pose, not the person, and the
+   enrolment then carries that noise forever. Cheap to reject a frame; expensive to re-enrol. */
+function quality(world, image, conf){
+  const span = dist(world[0], world[12]);                        // wrist -> middle tip, metres
+  const inFrame = image.every(p => p.x > .03 && p.x < .97 && p.y > .03 && p.y < .97);
+  const n = cross(sub(world[5], world[0]), sub(world[17], world[0]));
+  const facing = Math.abs(n.z) / (norm(n) || 1e-9);              // palm normal towards lens
+  // fingers extended: tips should sit well beyond their knuckles
+  const ext = [[8,5],[12,9],[16,13],[20,17]]
+    .map(([t,m]) => dist(world[t], world[0]) / (dist(world[m], world[0]) || 1e-9));
+  const extended = Math.min(...ext);
+  return {span, inFrame, facing, extended, conf};
+}
+
+const GATE_DEFS = [
+  {k:"conf",     name:"Hand detected clearly", ok:q => q.conf >= .90,             val:q => q.conf.toFixed(2)},
+  {k:"inFrame",  name:"Whole hand in frame",   ok:q => q.inFrame,                 val:q => q.inFrame ? "yes" : "clipped"},
+  {k:"span",     name:"Close enough to lens",  ok:q => q.span >= .14 && q.span <= .26, val:q => (q.span*100).toFixed(1) + " cm"},
+  {k:"facing",   name:"Palm facing the lens",  ok:q => q.facing >= .60,           val:q => q.facing.toFixed(2)},
+  {k:"extended", name:"Fingers straight",      ok:q => q.extended >= 1.55,        val:q => q.extended.toFixed(2)},
+  {k:"still",    name:"Held still",            ok:q => q.motion != null && q.motion < .010, val:q => q.motion == null ? "—" : (q.motion*1000).toFixed(1) + " mm"}
+];
+
+el("gates").innerHTML = GATE_DEFS.map(g =>
+  `<div class="g" id="gate-${g.k}"><i class="dot"></i><span class="gname">${g.name}</span><span class="gval">—</span></div>`).join("");
+
+let prevWorld = null, goodStreak = 0;
+
+function tick(){
+  if (!running) return;
+  const v = el("vid");
+  if (v.readyState >= 2){
+    const res = landmarker.detectForVideo(v, performance.now());
+    const have = res.landmarks && res.landmarks.length;
+    if (have){
+      const image = res.landmarks[0], world = res.worldLandmarks[0];
+      const conf = res.handednesses?.[0]?.[0]?.score ?? 0;
+      const q = quality(world, image, conf);
+      q.motion = prevWorld ? Math.max(...world.map((p,i) => dist(p, prevWorld[i]))) : null;
+      prevWorld = world;
+
+      const pass = GATE_DEFS.map(g => { const ok = !!g.ok(q); paintGate(g, ok, g.val(q)); return ok; });
+      const allOk = pass.every(Boolean);
+      goodStreak = allOk ? goodStreak + 1 : 0;
+
+      LAST = {image, world, q, allOk, hand: res.handednesses?.[0]?.[0]?.categoryName || "?"};
+      el("badge").textContent = LAST.hand.toLowerCase() + " hand · " + (allOk ? "ready" : "adjust");
+      el("ring").classList.toggle("armed", goodStreak >= 6);
+      draw(image);
+      onFrame();
+    } else {
+      LAST = null; prevWorld = null; goodStreak = 0;
+      GATE_DEFS.forEach(g => paintGate(g, null, "—"));
+      el("badge").textContent = "no hand";
+      el("ring").classList.remove("armed");
+      const c = el("ovl").getContext("2d"); c.clearRect(0,0,el("ovl").width, el("ovl").height);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function paintGate(g, ok, val){
+  const n = el("gate-" + g.k); if (!n) return;
+  n.className = "g" + (ok === null ? "" : ok ? " ok" : " bad");
+  n.querySelector(".dot").className = "dot" + (ok === null ? "" : ok ? " on" : " off");
+  n.querySelector(".gval").textContent = val;
+}
+
+function draw(lm){
+  const cv = el("ovl"), c = cv.getContext("2d");
+  c.clearRect(0,0,cv.width,cv.height);
+  const X = p => p.x * cv.width, Y = p => p.y * cv.height;
+  c.lineWidth = 3; c.strokeStyle = "rgba(168,85,247,.75)";
+  for (const [a,b] of HAND_CONNECTIONS){
+    c.beginPath(); c.moveTo(X(lm[a]), Y(lm[a])); c.lineTo(X(lm[b]), Y(lm[b])); c.stroke();
+  }
+  for (const p of lm){
+    c.beginPath(); c.arc(X(p), Y(p), 4.5, 0, 7);
+    c.fillStyle = "#f3effc"; c.fill();
+  }
+}
+
+/* one dispatcher so only the visible tab does work per frame */
+function onFrame(){
+  if (capture.active) captureFrame();
+  else if (TAB === "identify") identifyTick();
+}
+
+/* ============================ capture engine ============================
+   Shared by enrolment and the benchmark: hold the gates green, take a sample,
+   then demand real movement before the next one. Ten near-identical frames
+   would understate the spread and make the template look far tighter than the
+   hand actually is. */
+const capture = {active:false, want:0, got:[], onDone:null, cooldown:0, anchor:null, hand:null, mixed:false};
+
+function startCapture(want, onDone){
+  capture.active = true; capture.want = want; capture.got = [];
+  capture.onDone = onDone; capture.cooldown = 0; capture.anchor = null;
+  capture.hand = null; capture.mixed = false;
+  return capture;
+}
+function captureFrame(){
+  if (capture.cooldown > 0){ capture.cooldown--; return; }
+  if (!LAST || !LAST.allOk || goodStreak < 6) return;
+  // One hand per enrolment. A left hand is not a mirror of a right one to this signature, so
+  // mixing them mid-capture builds a template describing neither — and the person would then
+  // fail to identify with either hand, which looks like the biometric being broken.
+  if (capture.hand === null) capture.hand = LAST.hand;
+  else if (LAST.hand !== capture.hand){ capture.mixed = true; return; }
+  if (capture.anchor){
+    const moved = Math.max(...LAST.world.map((p,i) => dist(p, capture.anchor[i])));
+    if (moved < 0.012) return;   // same pose as the last sample — wait for a change
+  }
+  capture.got.push(LAST.world.map(p => [p.x, p.y, p.z]));
+  capture.anchor = LAST.world;
+  capture.cooldown = 8;
+  if (capture.onProgress) capture.onProgress(capture.got.length);
+  if (capture.got.length >= capture.want){
+    capture.active = false;
+    const got = capture.got;
+    const cb = capture.onDone; capture.onDone = null; capture.onProgress = null;
+    cb && cb(got);
+  }
+}
+
+/* ============================ enrol ============================ */
+const WANT = 8;   // above palm.MIN_SAMPLES (5) so a rejected frame or two still leaves enough
+function paintSlots(n){
+  el("slots").innerHTML = Array.from({length:WANT}, (_,i) =>
+    `<div class="slot${i < n ? " filled" : ""}">${i < n ? "✓" : i+1}</div>`).join("");
+}
+paintSlots(0);
+
+el("enrolName").oninput = () => { el("enrolBtn").disabled = !el("enrolName").value.trim(); };
+el("enrolReset").onclick = () => { capture.active = false; paintSlots(0); el("enrolMsg").textContent = ""; };
+
+el("enrolBtn").onclick = () => {
+  const subject = el("enrolName").value.trim();
+  if (!subject) return;
+  if (!running){ el("enrolMsg").innerHTML = '<span style="color:var(--amber)">Start the camera first.</span>'; return; }
+  el("enrolBtn").disabled = true;
+  el("enrolMsg").innerHTML = `Hold your hand in the circle. <b>Rotate it slightly</b> after each ✓.`;
+  paintSlots(0);
+  const c = startCapture(WANT, async samples => {
+    if (capture.mixed) el("enrolMsg").innerHTML =
+      '<span style="color:var(--amber)">Frames from your other hand were skipped — one hand per enrolment.</span><br>';
+    el("enrolMsg").textContent = "Saving…";
+    try{
+      const d = await api("/ace/palm/enrol", {subject, samples,
+        meta:{source:"worldLandmarks", hand: capture.hand, ua: navigator.userAgent.slice(0,120)}});
+      el("enrolMsg").innerHTML = `<b style="color:var(--green)">Enrolled ${esc(d.subject)}</b> — ${d.samples} samples, ${d.features} features, ` +
+        `<b>${esc(String(capture.hand).toLowerCase())} hand</b>. Present the same hand from now on. ` +
+        `Now switch to <b>Live identify</b> and check it recognises you, then to <b>Measure</b>.`;
+      loadRoster();
+    } catch(e){ el("enrolMsg").innerHTML = '<span style="color:var(--red)">' + esc(e.message) + '</span>'; }
+    el("enrolBtn").disabled = false;
+  });
+  c.onProgress = paintSlots;
+};
+
+/* ============================ identify ============================ */
+let idBusy = false, idLastAt = 0;
+async function identifyTick(){
+  const now = performance.now();
+  if (idBusy || !LAST || !LAST.allOk || now - idLastAt < 400) return;
+  idBusy = true; idLastAt = now;
+  try{
+    const d = await api("/ace/palm/identify", {landmarks: LAST.world.map(p => [p.x,p.y,p.z])});
+    const v = el("idVerdict");
+    v.className = "verdict " + (d.accepted ? "yes" : "no");
+    el("idWho").textContent = d.accepted ? d.subject : "not recognised";
+    el("idWhy").textContent = d.reason || "";
+    el("idDist").textContent = f2(d.distance);
+    el("idThr").textContent = f2(CFG.threshold);
+    el("idMargin").textContent = d.margin == null ? "—" : (isFinite(d.margin) ? f2(d.margin) : "only one enrolled");
+    el("idRunners").innerHTML = (d.runners_up || []).length
+      ? '<div class="note" style="margin-bottom:6px">Next closest</div>' + d.runners_up.map(r =>
+          `<div class="kv"><span>${esc(r.subject)}</span><b class="mono">${f2(r.distance)}</b></div>`).join("")
+      : "";
+  } catch(e){ /* transient */ }
+  idBusy = false;
+}
+
+/* ============================ measure ============================ */
+const BENCH = JSON.parse(localStorage.getItem("palm.bench") || "[]");
+function saveBench(){ localStorage.setItem("palm.bench", JSON.stringify(BENCH)); }
+
+el("benchBtn").onclick = () => {
+  const truth = el("truthSel").value;
+  if (!truth || !running) return;
+  el("benchBtn").disabled = true;
+  let n = 0;
+  const c = startCapture(10, () => { el("benchBtn").disabled = false; renderBench(); });
+  c.onProgress = async k => {
+    el("benchMsg").textContent = `Capturing ${k}/10 for ${truth} — keep moving the hand a little.`;
+    const lm = capture.got[k-1];
+    try{
+      const d = await api("/ace/palm/score", {landmarks: lm});
+      BENCH.push({truth, at: Date.now(), scores: d.scores});
+      saveBench();
+    } catch(e){ el("benchMsg").innerHTML = '<span style="color:var(--red)">' + esc(e.message) + '</span>'; }
+  };
+};
+el("benchClear").onclick = () => { BENCH.length = 0; saveBench(); renderBench(); };
+el("benchExport").onclick = () => {
+  const blob = new Blob([JSON.stringify({captured: new Date().toISOString(), records: BENCH}, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "palm-bench.json"; a.click();
+};
+
+/* FAR/FRR from the accumulated presentations.
+   genuine  = distance to the enrolment of the person actually presenting
+   impostor = distance to everyone else's enrolment
+   FRR(t) = genuine scores rejected at t;  FAR(t) = impostor scores accepted at t. */
+function analyse(){
+  const gen = [], imp = [];
+  for (const r of BENCH)
+    for (const s of r.scores)
+      (s.subject === r.truth ? gen : imp).push(s.distance);
+  if (!gen.length || !imp.length) return {gen, imp, curve:[], eer:null};
+  const curve = [];
+  for (let t = 0; t <= 4.001; t += 0.02){
+    curve.push({t,
+      frr: gen.filter(d => d > t).length / gen.length,
+      far: imp.filter(d => d <= t).length / imp.length});
+  }
+  // equal-error point: where |FAR - FRR| is smallest
+  const eer = curve.reduce((b, p) => Math.abs(p.far - p.frr) < Math.abs(b.far - b.frr) ? p : b, curve[0]);
+  return {gen, imp, curve, eer};
+}
+
+/* Identification accuracy under the rules the product actually applies:
+   best match must be within threshold AND clear of the runner-up by min_margin. */
+function idAccuracy(t, m){
+  let right = 0, wrong = 0, refused = 0;
+  for (const r of BENCH){
+    const s = [...r.scores].sort((a,b) => a.distance - b.distance);
+    if (!s.length) continue;
+    const margin = s.length > 1 ? s[1].distance - s[0].distance : Infinity;
+    if (s[0].distance > t || margin < m) refused++;
+    else if (s[0].subject === r.truth) right++;
+    else wrong++;
+  }
+  return {right, wrong, refused, total: right + wrong + refused};
+}
+
+function renderBench(){
+  const people = new Set(BENCH.map(r => r.truth));
+  const a = analyse();
+  el("benchExport").disabled = !BENCH.length;
+  if (!BENCH.length){ el("benchMsg").textContent = "No presentations yet."; el("benchOut").innerHTML = ""; drawRoc(null); return; }
+
+  el("benchMsg").innerHTML = `<b>${BENCH.length}</b> presentations from <b>${people.size}</b> ${people.size === 1 ? "person" : "people"} · ` +
+    `${a.gen.length} genuine scores, ${a.imp.length} impostor scores`;
+
+  if (people.size < 2 || !a.eer){
+    el("benchOut").innerHTML = `<div class="note" style="margin-top:12px">` +
+      `A false-accept rate needs at least <b>two enrolled people presenting</b> — with one hand there is nobody to be confused with. ` +
+      `Enrol a colleague and capture them too.</div>`;
+    drawRoc(a.curve.length ? a : null);
+    return;
+  }
+
+  const atCfg = {t: CFG.threshold,
+    frr: a.gen.filter(d => d > CFG.threshold).length / a.gen.length,
+    far: a.imp.filter(d => d <= CFG.threshold).length / a.imp.length};
+  const acc = idAccuracy(CFG.threshold, CFG.min_margin);
+  const pct = x => (x*100).toFixed(1) + "%";
+
+  el("benchOut").innerHTML = `
+    <table style="margin-top:12px">
+      <tr><th>Operating point</th><th class="num">threshold</th><th class="num">FRR</th><th class="num">FAR</th></tr>
+      <tr><td>shipping default</td><td class="num mono">${f2(atCfg.t)}</td><td class="num mono">${pct(atCfg.frr)}</td><td class="num mono">${pct(atCfg.far)}</td></tr>
+      <tr><td>measured equal-error</td><td class="num mono">${f2(a.eer.t)}</td><td class="num mono">${pct(a.eer.frr)}</td><td class="num mono">${pct(a.eer.far)}</td></tr>
+    </table>
+    <div class="note" style="margin-top:12px">
+      Identification at the shipping default, with the ${CFG.min_margin} margin rule:
+      <b style="color:var(--green)">${acc.right} correct</b>,
+      <b style="color:var(--red)">${acc.wrong} wrong person</b>,
+      <b style="color:var(--amber)">${acc.refused} refused</b> of ${acc.total}.
+    </div>
+    <div class="note" style="margin-top:10px">
+      ${Math.abs(a.eer.t - CFG.threshold) > 0.25
+        ? `Real hands put the equal-error point at <b>${f2(a.eer.t)}</b>, not ${f2(CFG.threshold)}. ` +
+          `Set <span class="mono">DEFAULT_THRESHOLD = ${f2(a.eer.t)}</span> in <span class="mono">app/palm.py</span> and re-run <span class="mono">tools/palm_bench.py</span>.`
+        : `The shipping default sits close to the measured equal-error point — no change needed yet.`}
+      ${atCfg.far > 0.02 ? ` A FAR of ${pct(atCfg.far)} means roughly ${Math.round(1/Math.max(atCfg.far,1e-9))} presentations between false accepts: <b>fine as a factor beside the signed session, not fine alone.</b>` : ``}
+    </div>`;
+  drawRoc(a);
+}
+
+function drawRoc(a){
+  const cv = el("roc"), r = cv.getBoundingClientRect();
+  cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio;
+  const c = cv.getContext("2d"); c.scale(devicePixelRatio, devicePixelRatio);
+  const W = r.width, H = r.height, P = 30;
+  c.clearRect(0,0,W,H);
+  c.strokeStyle = "rgba(255,255,255,.12)"; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(P, 8); c.lineTo(P, H-P); c.lineTo(W-10, H-P); c.stroke();
+  c.fillStyle = "rgba(138,129,159,.9)"; c.font = "10px JetBrains Mono, monospace";
+  c.fillText("100%", 2, 14); c.fillText("0", 20, H-P+4);
+  c.fillText("distance threshold", W/2 - 46, H - 8);
+  if (!a || !a.curve.length){ c.fillText("capture presentations to plot", P + 14, H/2); return; }
+  const X = t => P + (t/4) * (W - P - 12), Y = v => (H-P) - v * (H-P-10);
+  const line = (key, col) => {
+    c.beginPath(); c.strokeStyle = col; c.lineWidth = 2;
+    a.curve.forEach((p,i) => i ? c.lineTo(X(p.t), Y(p[key])) : c.moveTo(X(p.t), Y(p[key])));
+    c.stroke();
+  };
+  line("frr", "#60a5fa"); line("far", "#fb7185");
+  if (a.eer){
+    c.strokeStyle = "rgba(74,222,128,.55)"; c.setLineDash([4,4]); c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(X(a.eer.t), 8); c.lineTo(X(a.eer.t), H-P); c.stroke(); c.setLineDash([]);
+    c.fillStyle = "#4ade80"; c.fillText("EER " + a.eer.t.toFixed(2), X(a.eer.t) + 5, 18);
+  }
+  c.strokeStyle = "rgba(255,255,255,.22)"; c.setLineDash([3,3]);
+  c.beginPath(); c.moveTo(X(CFG.threshold), 8); c.lineTo(X(CFG.threshold), H-P); c.stroke(); c.setLineDash([]);
+  c.fillStyle = "#60a5fa"; c.fillText("FRR (reject the right person)", P + 10, H - 22);
+  c.fillStyle = "#fb7185"; c.fillText("FAR (accept the wrong one)", P + 10, H - 34);
+}
+
+/* ============================ roster ============================ */
+async function loadRoster(){
+  try{
+    const d = await api("/ace/palm/enrolments");
+    CFG = {threshold: d.threshold, min_margin: d.min_margin, min_samples: d.min_samples};
+    el("idThr").textContent = f2(CFG.threshold);
+    const rows = d.enrolments || [];
+    el("roster").innerHTML = rows.length ? `<table>
+      <tr><th>Subject</th><th class="num">Samples</th><th>Enrolled by</th><th></th></tr>
+      ${rows.map(r => `<tr><td>${esc(r.subject)}</td><td class="num mono">${r.samples ?? "—"}</td>
+        <td class="note">${esc(r.agent_id).slice(0,10)}</td>
+        <td class="num"><button class="ghost tiny" data-forget="${esc(r.subject)}">Forget</button></td></tr>`).join("")}
+    </table>
+    <div class="note" style="margin-top:12px">Threshold <b class="mono">${f2(CFG.threshold)}</b> · minimum margin <b class="mono">${CFG.min_margin}</b></div>`
+    : `<div class="note">Nobody enrolled yet.</div>`;
+    el("roster").querySelectorAll("[data-forget]").forEach(b => b.onclick = async () => {
+      await api("/ace/palm/forget", {subject: b.dataset.forget}); loadRoster();
+    });
+    el("truthSel").innerHTML = rows.map(r => `<option>${esc(r.subject)}</option>`).join("")
+      || `<option value="">— enrol someone first —</option>`;
+    el("benchBtn").disabled = !rows.length;
+    renderBench();
+  } catch(e){ el("roster").innerHTML = '<div class="note" style="color:var(--red)">' + esc(e.message) + '</div>'; }
+}
+
+/* ============================ boot ============================ */
+async function boot(){
+  if (!SESSION){ showGate(); return; }
+  try { await api("/palm/me"); } catch(e){ showGate(); return; }
+  showApp(); loadRoster();
+}
+boot();
+addEventListener("resize", () => { if (TAB === "measure") renderBench(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GlassLink Wallet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Single-theme by intent — the same violet-black world as the Jarvis core. */
+  :root{
+    color-scheme: dark;
+    --void:#06050c; --shell:#0d0b1a; --edge:#1c1830;
+    --haze:#f4f0fd; --mute:#8b82a0;
+    --violet:#7c5cff; --cyan:#67e8f9; --magenta:#c026d3;
+    --good:#34d399;
+    --gut: clamp(16px,4vw,40px);
+    --display:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--void); color:var(--haze);
+    font-family:var(--display); -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  .field{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(60vmax 60vmax at 20% 10%, rgba(124,92,255,.16), transparent 62%),
+      radial-gradient(48vmax 48vmax at 86% 90%, rgba(52,211,153,.10), transparent 60%);
+    animation: drift 36s ease-in-out infinite alternate;
+  }
+  @keyframes drift{ to{ transform:translate3d(0,-3%,0) scale(1.06);} }
+
+  .stage{
+    position:relative; z-index:1; height:100%;
+    display:grid; grid-template-rows:auto 1fr auto;
+    gap:clamp(12px,2.4vh,26px);
+    padding-inline:var(--gut); padding-block:clamp(14px,3vh,30px);
+  }
+  .rail{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px}
+  .mark{font-weight:700; font-size:15px; letter-spacing:.14em; text-transform:uppercase;
+        margin-right:auto; display:flex; align-items:center; gap:9px}
+  .mark b{color:var(--violet)}
+  .mark span{color:var(--mute); font-weight:500; letter-spacing:.2em; font-size:11px}
+  .chip{
+    font-family:var(--mono); font-size:11px; letter-spacing:.04em;
+    padding:6px 11px; border-radius:999px; border:1px solid var(--edge);
+    background:var(--shell); color:var(--mute);
+    display:inline-flex; align-items:center; gap:7px; white-space:nowrap;
+  }
+  .chip::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+  .chip.live{color:var(--cyan); border-color:rgba(103,232,249,.38)}
+  .chip.demo{color:var(--violet); border-color:rgba(124,92,255,.42)}
+
+  /* ── balance ── */
+  .core{display:grid; place-items:center; gap:10px; min-height:0; text-align:center}
+  .who{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+       text-transform:uppercase; color:var(--mute)}
+  .balance{
+    font-size:clamp(46px,12vw,104px); font-weight:700; line-height:1;
+    letter-spacing:-.03em; font-variant-numeric:tabular-nums; margin:0;
+    transition:color .5s;
+  }
+  .balance.bump{animation:bump .9s cubic-bezier(.2,.9,.2,1)}
+  @keyframes bump{
+    0%{transform:scale(1)} 26%{transform:scale(1.07); color:var(--good)} 100%{transform:scale(1)}
+  }
+  .wallet{font-family:var(--mono); font-size:11px; color:var(--mute); letter-spacing:.08em}
+
+  /* the courier: an agent carrying the money across */
+  .courier{width:min(560px,100%); height:132px; display:block}
+  .pulse{opacity:0}
+  .pulse.run{animation:travel 1.9s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes travel{
+    0%{opacity:0; transform:translateX(0)}
+    12%{opacity:1}
+    88%{opacity:1}
+    100%{opacity:0; transform:translateX(392px)}
+  }
+  .coin{opacity:0}
+  .coin.run{animation:carry 1.9s cubic-bezier(.4,0,.2,1) forwards}
+  @keyframes carry{
+    0%{opacity:0; transform:translateX(0) translateY(0)}
+    14%{opacity:1}
+    50%{transform:translateX(196px) translateY(-14px)}
+    86%{opacity:1}
+    100%{opacity:0; transform:translateX(392px) translateY(0)}
+  }
+
+  /* ── arrivals ── */
+  .feed{display:grid; gap:10px; max-height:min(34vh,300px); overflow-y:auto; padding-right:4px;
+        scrollbar-width:thin; scrollbar-color:var(--edge) transparent}
+  .arrival{
+    display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;
+    padding:14px 16px; border:1px solid var(--edge); border-radius:12px;
+    background:var(--shell);
+    animation:land .55s cubic-bezier(.2,.9,.2,1);
+  }
+  .arrival.fresh{border-color:rgba(52,211,153,.5)}
+  @keyframes land{from{opacity:0; transform:translateY(-10px)} to{opacity:1; transform:none}}
+  .avatar{
+    width:38px; height:38px; border-radius:50%; display:grid; place-items:center;
+    background:rgba(124,92,255,.14); border:1px solid rgba(124,92,255,.4);
+    font-weight:700; font-size:14px; color:var(--haze);
+  }
+  .arrival .from{font-size:15px; font-weight:500}
+  .arrival .meta{font-family:var(--mono); font-size:10.5px; color:var(--mute);
+                 letter-spacing:.06em; margin-top:3px}
+  .amt{font-family:var(--mono); font-size:17px; font-weight:500; color:var(--good);
+       font-variant-numeric:tabular-nums; white-space:nowrap}
+  .empty{color:var(--mute); font-size:14px; text-align:center; padding:26px 0}
+
+  .foot{display:flex; flex-wrap:wrap; gap:6px 16px; font-family:var(--mono); font-size:10px;
+        letter-spacing:.1em; color:var(--mute); text-transform:uppercase;
+        border-top:1px solid var(--edge); padding-top:10px}
+  .foot b{color:var(--haze); font-weight:500}
+  @media (max-width:560px){ .mark span{display:none} .courier{height:104px} }
+  @media (prefers-reduced-motion:reduce){
+    .field{animation:none}
+    .pulse.run,.coin.run,.balance.bump,.arrival{animation:none; opacity:1}
+  }
+</style>
+</head>
+<body>
+<div class="field"></div>
+
+<div class="stage">
+  <header class="rail">
+    <div class="mark"><b>GLASSLINK</b> <span>wallet</span></div>
+    <div class="chip" id="c-link">link <b id="v-link">connecting</b></div>
+    <div class="chip demo" id="c-demo" hidden>demo <b>no agent on :8100</b></div>
+  </header>
+
+  <main class="core">
+    <div class="who" id="v-who">Alex Morgan</div>
+    <h1 class="balance" id="v-balance">—</h1>
+    <div class="wallet" id="v-wallet">—</div>
+
+    <svg class="courier" viewBox="0 0 560 132" aria-hidden="true">
+      <defs>
+        <linearGradient id="wire" x1="0" x2="1">
+          <stop offset="0" stop-color="#7c5cff" stop-opacity=".25"/>
+          <stop offset="1" stop-color="#34d399" stop-opacity=".25"/>
+        </linearGradient>
+      </defs>
+      <line x1="84" y1="66" x2="476" y2="66" stroke="url(#wire)" stroke-width="2"/>
+      <g>
+        <circle cx="84" cy="66" r="26" fill="none" stroke="#7c5cff" stroke-width="1.5" opacity=".7"/>
+        <text x="84" y="71" text-anchor="middle" font-size="13" fill="#cbb9ff"
+              font-family="JetBrains Mono, monospace">A</text>
+      </g>
+      <g>
+        <circle cx="476" cy="66" r="26" fill="none" stroke="#34d399" stroke-width="1.5" opacity=".8"/>
+        <text x="476" y="71" text-anchor="middle" font-size="13" fill="#9df0cf"
+              font-family="JetBrains Mono, monospace">B</text>
+      </g>
+      <g class="pulse" id="pulse">
+        <circle cx="84" cy="66" r="7" fill="#7c5cff" opacity=".28"/>
+      </g>
+      <g class="coin" id="coin">
+        <circle cx="84" cy="66" r="13" fill="rgba(52,211,153,.16)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="84" y="71" text-anchor="middle" font-size="11" fill="#9df0cf"
+              font-family="JetBrains Mono, monospace" id="coin-amt">20</text>
+      </g>
+    </svg>
+  </main>
+
+  <footer style="display:grid; gap:12px">
+    <div class="feed" id="feed" aria-live="polite">
+      <div class="empty" id="empty">No arrivals yet.</div>
+    </div>
+    <div class="foot">
+      <span>agent <b id="v-agent">—</b></span>
+      <span>ledger <b>double entry</b></span>
+      <span>events <b id="v-count">0</b></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const fmt = n => Number(n).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  let count = 0;
+
+  function play(amount){
+    // Restart the animation even if it just ran: remove, reflow, re-add.
+    $("coin-amt").textContent = Number(amount) % 1 ? Number(amount).toFixed(2) : Number(amount);
+    for (const el of [$("pulse"), $("coin")]){
+      el.classList.remove("run"); void el.offsetWidth; el.classList.add("run");
+    }
+  }
+
+  function setBalance(b, currency, animate){
+    const el = $("v-balance");
+    el.textContent = `${fmt(b)} ${currency || ""}`.trim();
+    if (animate){ el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+  }
+
+  function arrival(ev){
+    const p = ev.payload || ev;
+    $("empty")?.remove();
+    const row = document.createElement("div");
+    row.className = "arrival fresh";
+    const initials = (p.from_name || "?").split(/\s+/).map(w => w[0]).join("").slice(0,2).toUpperCase();
+    row.innerHTML =
+      `<div class="avatar"></div>
+       <div><div class="from"></div>
+            <div class="meta"></div></div>
+       <div class="amt"></div>`;
+    row.querySelector(".avatar").textContent = initials;
+    row.querySelector(".from").textContent = p.from_name || "Unknown";
+    row.querySelector(".meta").textContent =
+      `${p.transfer_id || ""} · ${(p.tier || "").toUpperCase()} · ${(p.at || "").replace("T"," ").replace("Z","")}`;
+    row.querySelector(".amt").textContent = `+${fmt(p.amount)} ${p.currency}`;
+    const feed = $("feed");
+    feed.prepend(row);
+    while (feed.children.length > 12) feed.lastChild.remove();
+    setTimeout(() => row.classList.remove("fresh"), 2600);
+    $("v-count").textContent = ++count;
+    play(p.amount);
+  }
+
+  function connect(){
+    let es;
+    try { es = new EventSource("events"); } catch { return demo(); }
+    const giveUp = setTimeout(() => { try{es.close();}catch{} demo(); }, 2500);
+    es.onopen = () => { clearTimeout(giveUp);
+      $("c-link").className = "chip live"; $("v-link").textContent = "live"; };
+    es.onerror = () => { clearTimeout(giveUp); try{es.close();}catch{} demo(); };
+    es.onmessage = e => {
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      if (d.type === "hello"){
+        $("v-who").textContent = d.name || "—";
+        $("v-agent").textContent = d.agent_id || "—";
+        $("v-wallet").textContent = d.wallet || "—";
+        setBalance(d.balance, d.currency, false);
+      }
+      if (d.type === "credited"){
+        arrival(d);
+        setBalance(d.balance, d.payload.currency, true);
+      }
+    };
+  }
+
+  // Opened away from the agent: show the same screen driven by a scripted arrival,
+  // clearly marked, so the page is never a dead shell.
+  function demo(){
+    $("c-demo").hidden = false;
+    $("c-link").className = "chip"; $("v-link").textContent = "offline";
+    $("v-who").textContent = "Alex Morgan";
+    $("v-agent").textContent = "agt_alex";
+    $("v-wallet").textContent = "wal_alex_aed";
+    let bal = 50;
+    setBalance(bal, "AED", false);
+    const fire = () => {
+      bal += 20;
+      arrival({payload:{from_name:"Sagar Uniyal", amount:20, currency:"AED",
+                        transfer_id:"tfr_demo0001", tier:"green",
+                        at:new Date().toISOString().slice(0,19)}});
+      setBalance(bal, "AED", true);
+    };
+    setTimeout(fire, 1400);
+    setInterval(fire, 12000);
+  }
+
+  connect();
+})();
+</script>
+</body>
+</html>

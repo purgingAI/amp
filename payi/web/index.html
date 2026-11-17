@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayI — demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="/static/payi.css">
+<style>
+.wrap{max-width:1040px;margin:0 auto;padding:70px 24px;display:grid;gap:34px}
+h1{margin:0;font:650 54px/1.05 var(--ui);letter-spacing:-.035em}
+h1 i{font-style:normal;color:var(--payi)}
+.lede{font-size:17px;color:var(--muted);max-width:62ch;margin:0}
+.screens{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.screens a{text-decoration:none;color:inherit;padding:22px;display:grid;gap:10px;transition:.2s}
+.screens a:hover{border-color:var(--faint);transform:translateY(-2px)}
+.screens h2{margin:0;font:600 18px var(--ui)} .screens p{margin:0;color:var(--muted);font-size:13px}
+.url{font:500 12px var(--mono);color:var(--dim)}
+.products{display:flex;gap:10px;flex-wrap:wrap}
+@media (max-width:800px){.screens{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="mark"></span><div><b>Pay<i>I</i></b><small>paid by AI</small></div></div>
+  <h1>Jarvis pays.<br>You just say it — or show your <i style="color:var(--palm)">palm</i>.</h1>
+  <p class="lede">Three screens, one protocol. Every key, signature, ciphertext and ledger entry on the watcher is produced live by the real payment code.</p>
+  <div class="products"><span class="pill payi">PayI · pay people</span><span class="pill palm">PalmPay · pay in stores</span><span class="pill voice">VoicePay · in both</span></div>
+  <div class="screens">
+    <a class="panel" href="/payer"><span class="label">Screen 1 · Sagar</span><h2>Jarvis console</h2><p>Speak to pay Alex, or walk into Falcon Café and pay with your palm.</p><span class="url" data-p="/payer"></span></a>
+    <a class="panel" href="/watch"><span class="label">Screen 2 · watcher</span><h2>PayI Core</h2><p>Session keys, signatures, encrypted palm release, checks, ledger — live.</p><span class="url" data-p="/watch"></span></a>
+    <a class="panel" href="/wallet"><span class="label">Screen 3 · Alex</span><h2>Receiving wallet</h2><p>Money lands here, derived from the ledger, with its proof.</p><span class="url" data-p="/wallet"></span></a>
+  </div>
+</div>
+<script>document.querySelectorAll(".url").forEach(u => u.textContent = location.host + u.dataset.p);</script>
+</body>
+</html>

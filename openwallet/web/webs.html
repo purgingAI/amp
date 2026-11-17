@@ -1,0 +1,1173 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OpenWallet · how it thinks</title>
+<!--
+  Seven knowledge webs, one crawler.
+
+  Everything drawn here comes from cx/webs.py, which builds the plan from a real engine
+  answer — the classifier's own ranking, the second opinion, the ledger rows it read, the
+  guards that fired. Nodes the crawler touched are lit and on the path; nodes it did not are
+  drawn faint. A mostly-dark web is the honest picture of a narrow assistant with a lot
+  available and a little used, and it is not dressed up here.
+
+  The only invented pixels are decorative: the dust clouds that give each cluster a body.
+  They carry no data and are seeded from the question so the same question draws the same
+  picture twice.
+-->
+<style>
+  :root{
+    --bg:#08080c; --panel:#0d0d13; --line:#1b1b25; --ink:#e8e8f0;
+    --dim:#6a6a7e; --dimmer:#3d3d4c; --accent:#ff3d7f;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);
+    font-size:12px;overflow:hidden;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;
+  }
+
+  /* ── tab strip ─────────────────────────────────────────────────────────── */
+  #tabs{display:flex;gap:2px;padding:6px 8px 0;flex:0 0 auto}
+  .tab{
+    flex:1;text-align:center;padding:5px 4px;font-size:10px;letter-spacing:.14em;
+    color:var(--dimmer);background:#0b0b11;border:1px solid transparent;border-radius:2px;
+    cursor:pointer;text-transform:lowercase;transition:color .25s,background .25s;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .tab:hover{color:var(--dim)}
+  .tab.on{color:#07070b;font-weight:600}
+
+  /* ── header ────────────────────────────────────────────────────────────── */
+  #head{padding:10px 14px 6px;display:flex;align-items:flex-start;gap:10px;flex:0 0 auto}
+  #bar{width:3px;align-self:stretch;min-height:34px;background:var(--accent);border-radius:2px;
+       box-shadow:0 0 14px currentColor;transition:background .35s}
+  #h1{font-size:19px;letter-spacing:.17em;font-weight:600;line-height:1.15}
+  #h2{font-size:10px;color:var(--dim);letter-spacing:.1em;margin-top:3px}
+  #ask{margin-left:auto;display:flex;gap:6px;align-items:center}
+  #q{
+    background:#0b0b11;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);
+    font-size:11px;padding:7px 10px;border-radius:3px;width:min(42vw,380px);outline:none;
+  }
+  #q:focus{border-color:var(--accent)}
+  #go{background:var(--accent);color:#07070b;border:0;font-family:var(--mono);font-weight:600;
+      font-size:11px;padding:7px 14px;border-radius:3px;cursor:pointer;letter-spacing:.1em}
+  #go:disabled{opacity:.4;cursor:default}
+
+  /* ── stage ─────────────────────────────────────────────────────────────── */
+  #stage{position:relative;flex:1 1 auto;min-height:0}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .pb canvas{display:block;max-width:100%}
+  #say{
+    position:absolute;left:14px;right:14px;bottom:10px;font-size:12px;line-height:1.5;
+    color:#d8d8e6;text-shadow:0 2px 14px #000;pointer-events:none;max-width:72ch;font-size:13px;
+  }
+  #say b{color:#fff;font-weight:600}
+
+  /* ── panels ────────────────────────────────────────────────────────────── */
+  #panels{
+    flex:0 0 auto;display:grid;gap:1px;background:var(--line);
+    grid-template-columns:1.15fr 1.1fr .95fr 1.05fr .9fr 1.1fr;
+    height:168px;border-top:1px solid var(--line);
+  }
+  .p{background:var(--panel);padding:7px 9px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+  .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;flex:0 0 auto}
+  .pt{font-size:9.5px;letter-spacing:.17em;color:#b9b9cc}
+  .pv{font-size:9px;color:var(--dim)}
+  .pb{flex:1 1 auto;overflow:hidden;min-height:0}
+
+  /* crawl log */
+  .lg{display:flex;gap:6px;font-size:9.5px;line-height:1.55;white-space:nowrap}
+  .lg .t{color:var(--dimmer)}
+  .lg .v{width:30px;flex:0 0 auto}
+  .lg .n{color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+  .v.walk{color:#fff;font-weight:600}.v.read{color:#5f5f73}
+  .v.link{color:#b9b9cc}.v.flag{color:var(--accent);font-weight:600}
+
+  /* sections */
+  .sec{margin-bottom:7px}
+  .secr{display:flex;justify-content:space-between;font-size:9.5px;margin-bottom:2px}
+  .secn{color:#a9a9bd}.secv{color:var(--dim)}
+  .track{height:3px;background:#17171f;border-radius:2px;overflow:hidden}
+  .fill{height:100%;width:0;border-radius:2px;transition:width .7s cubic-bezier(.2,.8,.2,1)}
+
+  /* heat */
+  .hr{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:9px}
+  .hl{width:52px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 0 auto}
+  .hc{display:flex;gap:2px;flex:1 1 auto}
+  .cell{flex:1;height:8px;border-radius:1px;background:#15151d}
+  .hv{width:34px;text-align:right;color:#8a8a9e;flex:0 0 auto}
+
+  /* score */
+  #gauge{display:flex;align-items:center;justify-content:center;flex:1 1 auto;position:relative}
+  #gnum{position:absolute;font-size:23px;font-weight:600;letter-spacing:.02em}
+  #glab{position:absolute;margin-top:46px;font-size:8px;color:var(--dim);letter-spacing:.14em}
+  .note{font-size:9px;margin-top:4px}
+  .note .f{color:var(--accent)}
+
+  /* code */
+  .cd{font-size:9px;line-height:1.5;white-space:pre;color:#5a5a6e}
+  .cd .k{color:#b9b9cc}.cd .n{color:#8a8a9e}.cd .c{color:#4a4a5c}.cd .f{color:var(--accent)}
+
+  #err{position:absolute;inset:auto 14px 40px;color:var(--accent);font-size:11px}
+  #handoff{position:absolute;left:14px;bottom:58px;display:none;font-size:11px;
+    background:rgba(255,61,127,.12);border:1px solid var(--accent);color:#ffd9e6;
+    padding:7px 11px;border-radius:3px}
+  #handoff a{color:#fff;font-weight:600}
+  #live{font-size:9px;letter-spacing:.14em;color:var(--dim);margin-left:10px;align-self:center}
+  @media (max-width:900px){
+    #panels{grid-template-columns:1fr 1fr 1fr;height:300px}
+    #q{width:40vw}
+  }
+</style>
+
+<div id="tabs"></div>
+<div id="head">
+  <div id="bar"></div>
+  <div>
+    <div id="h1">READY</div>
+    <div id="h2">ask something and watch it think</div>
+  </div>
+  <div id="ask">
+    <input id="q" value="analyse my spending last month"
+           placeholder="ask about your spending…" autocomplete="off">
+    <button id="go">CRAWL</button><span id="live">live · …</span>
+  </div>
+</div>
+
+<div id="stage">
+  <canvas id="cv"></canvas>
+  <div id="say"></div>
+  <div id="handoff"></div>
+  <div id="err"></div>
+</div>
+
+<div id="panels">
+  <div class="p"><div class="ph"><span class="pt">CRAWL LOG</span><span class="pv" id="rate">0 n/s</span></div><div class="pb" id="log"></div></div>
+  <div class="p"><div class="ph"><span class="pt">WEBS</span><span class="pv" id="nwebs">7</span></div><div class="pb" id="secs"></div></div>
+  <div class="p"><div class="ph"><span class="pt">COVERAGE</span><span class="pv">live</span></div><div class="pb" id="radar"></div></div>
+  <div class="p"><div class="ph"><span class="pt" id="heatt">HEAT</span><span class="pv" id="heatv">—</span></div><div class="pb" id="heat"></div></div>
+  <div class="p"><div class="ph"><span class="pt">SCORE</span><span class="pv" id="smodel">—</span></div>
+    <div id="gauge"><canvas id="gc" width="150" height="150" style="width:75px;height:75px"></canvas>
+      <div id="gnum">0</div><div id="glab">CONFIDENCE</div></div>
+    <div class="note" id="snote"></div></div>
+  <div class="p"><div class="ph"><span class="pt">CRAWLER.PY</span><span class="pv" id="lps">—</span></div><div class="pb cd" id="code"></div></div>
+</div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+let PLAN = null, CL = [], active = 0, dust = [];
+/* Annotation chips. One is pinned beside a node the moment the crawler touches it, carrying
+   that node's own short reason, and fades a few seconds later. They are transient on purpose:
+   every finding at once is a wall of text, and the point is to read what the crawler is
+   looking at RIGHT NOW. */
+let chips = [];
+let labelBoxes = [];          // where this frame's node labels ended up
+const CHIP_LIFE = 5.0;
+let crawl = {i:0, j:0, p:{x:0,y:0,z:0}, target:null, trail:[],
+             running:false, t:0};
+
+/* ── the world, in three dimensions ───────────────────────────────────────────
+   The seven webs are lobes of ONE structure, and each lobe is a BALL of silk, not a disc.
+   That is the whole change here, and it is not decoration: a flat web gives the crawler two
+   directions to walk and every node is always visible, so nothing is ever behind anything
+   and the labels fight each other for the same strip of screen. On a sphere the far side
+   occludes itself, which both looks like the reference and solves the crowding — a label is
+   only drawn when its node is on the side facing you.
+
+   Everything below works in world space and projects to device pixels at the moment of
+   drawing. The previous version drew in a scaled canvas transform, and the two mistakes
+   that cost the most time both came from that: devicePixelRatio applied twice in the world
+   scale, and node sizes expressed in world units so they vanished when zoomed. Projecting
+   explicitly means there is exactly one place where world becomes pixels. */
+
+/* Globe centres, on a shell rather than a ring, so the structure has depth from any angle.
+   x, y, z, and a size multiplier. */
+const SHELL = [
+  [-0.95,-0.22,-0.30, 1.00], [-0.18,-0.80, 0.42, 0.90], [ 0.86,-0.30,-0.22, 1.05],
+  [ 1.00, 0.40, 0.46, 0.90], [ 0.02, 0.18,-0.80, 1.15], [-0.86, 0.50, 0.40, 0.92],
+  [ 0.08, 0.95,-0.26, 0.85],
+];
+const SPAN = 360, R = 170;
+
+/* vector helpers, kept small and obvious */
+const v3  = (x,y,z) => ({x,y,z});
+const add = (a,b) => v3(a.x+b.x, a.y+b.y, a.z+b.z);
+const sub = (a,b) => v3(a.x-b.x, a.y-b.y, a.z-b.z);
+const mul = (a,k) => v3(a.x*k, a.y*k, a.z*k);
+const dot = (a,b) => a.x*b.x + a.y*b.y + a.z*b.z;
+const len = a => Math.sqrt(dot(a,a)) || 1e-6;
+const norm = a => mul(a, 1/len(a));
+const cross = (a,b) => v3(a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x);
+
+/* Rotate `a` toward `b` by angle t, staying on the unit sphere. This is what makes the
+   spider walk ACROSS the surface of a ball instead of cutting through the middle of it. */
+function slerp(a, b, t){
+  const d = Math.max(-1, Math.min(1, dot(a,b)));
+  const om = Math.acos(d);
+  if (om < 1e-4) return b;
+  const s = Math.sin(om);
+  return norm(add(mul(a, Math.sin((1-t)*om)/s), mul(b, Math.sin(t*om)/s)));
+}
+const angleBetween = (a,b) => Math.acos(Math.max(-1, Math.min(1, dot(a,b))));
+
+function srand(seed){
+  let h = 2166136261 >>> 0;
+  for (const ch of String(seed)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return () => { h ^= h<<13; h>>>=0; h ^= h>>17; h ^= h<<5; h>>>=0; return h / 4294967296; };
+}
+
+/* Nodes spread evenly over the ball by the golden angle, which is the only placement that
+   does not leave bald patches and clumps at the poles. Indexed, so the same plan always
+   produces the same ball — the crawl has to be reproducible to be believable. */
+function fib(k, n){
+  const y = n === 1 ? 0 : 1 - 2*(k + 0.5)/n;
+  const r = Math.sqrt(Math.max(0, 1 - y*y));
+  const th = k * 2.399963229728653;
+  return v3(r*Math.cos(th), y, r*Math.sin(th));
+}
+
+function layout(plan){
+  CL = plan.webs.map((w,i) => {
+    const [rx,ry,rz,rs] = SHELL[i % SHELL.length];
+    const c = {...w, c: v3(rx*SPAN, ry*SPAN*0.70, rz*SPAN), r: R*rs};
+    // every node gets a direction on the ball, and keeps it
+    // the real nodes live IN the cloud at varying depth, not pinned to one shell
+    const rn = srand(plan.question + ':n:' + c.key);
+    c.nodes = w.nodes.map((n,k) => ({...n, dir: fib(k, w.nodes.length),
+                                     rad: 0.42 + rn()*0.72}));
+    return c;
+  });
+  // A CONSTELLATION, not a globe. The first version drew meridians and rungs over each
+  // ball, and the geometry was the problem: a wireframe sphere reads as a wireframe sphere,
+  // which is a diagram, not a cloud of knowledge. The reference is a drift of points —
+  // dense in the middle, thinning and breaking up at the edges, roughly round in outline but
+  // never actually round — with thin filaments between near neighbours and a nebula behind.
+  // Seeded from the question, so the same question draws the same constellation.
+  dust = CL.map((c) => {
+    const rnd = srand(plan.question + ':' + c.key);
+    const stars = [];
+    const N = 1500;
+    for (let k=0;k<N;k++){
+      const d = fib(k, N);
+      // cube root fills the volume evenly; the extra power pulls weight toward the core, and
+      // the noise term tears the outline up so it is not a clean ball
+      let rr = Math.pow(rnd(), 0.62);
+      rr *= 0.55 + 0.75*Math.pow(rnd(), 2.2);
+      const wob = 1 + (rnd()-0.5)*0.55;
+      stars.push({p: mul(d, Math.min(1.45, rr*wob*1.35)),
+                  a: 0.14 + Math.pow(rnd(), 1.5)*0.86,
+                  s: rnd()<0.02 ? 1.9 : (rnd()<0.18 ? 1.3 : 0.85)});
+    }
+    // filaments: each star reaches to a couple of its nearest neighbours, which is what turns
+    // a spray of dots into something that looks connected without looking drawn
+    const links = [];
+    for (let i=0;i<N;i+=1){
+      if (rnd() > 0.16) continue;
+      let best = -1, bestD = 1e9, second = -1, secondD = 1e9;
+      for (let j=0;j<N;j++){
+        if (j===i) continue;
+        const dd = len(sub(stars[i].p, stars[j].p));
+        if (dd < bestD){ second = best; secondD = bestD; best = j; bestD = dd; }
+        else if (dd < secondD){ second = j; secondD = dd; }
+      }
+      if (best >= 0 && bestD < 0.18) links.push({a:i, b:best, al: 0.05 + rnd()*0.20});
+      if (second >= 0 && secondD < 0.14 && rnd() < 0.5)
+        links.push({a:i, b:second, al: 0.04 + rnd()*0.14});
+    }
+    // three offset blooms rather than one centred circle, so the haze is lopsided like a
+    // real nebula instead of a halo
+    // Many small blooms rather than a few big ones. Three large ones read as bokeh circles
+    // — soft discs with visible edges sitting in front of the cloud — which is the opposite
+    // of a nebula.
+    const haze = [];
+    for (let k=0;k<9;k++){
+      haze.push({at: mul(fib(k*3+1, 29), 0.25 + rnd()*0.55),
+                 r: 0.55 + rnd()*0.65, a: 0.020 + rnd()*0.028});
+    }
+    return {stars, links, haze};
+  });
+}
+
+/* Where a node actually sits in the world: on its ball's surface. */
+const nodeW = (c,n) => add(c.c, mul(n.dir, c.r * (n.rad || 1)));
+
+/* ── camera ───────────────────────────────────────────────────────────────────
+   Orbits on its own, and can be dragged. The orbit is what makes the structure read as
+   solid: a still perspective projection of a sphere of dots is indistinguishable from a
+   flat disc of dots, and the thing being demonstrated is the depth. */
+let cam = {yaw: 0.4, pitch: -0.22, dist: 1500, at: v3(0,0,0),
+           tyaw: 0.4, tpitch: -0.22, tdist: 1500, tat: v3(0,0,0),
+           drag: null, spin: 0.085};
+let VIEW = {W: 0, H: 0, f: 1200};
+
+function project(p){
+  const d = sub(p, cam.at);
+  const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+  const x1 =  d.x*cy + d.z*sy;
+  const z1 = -d.x*sy + d.z*cy;
+  const cp = Math.cos(cam.pitch), sp2 = Math.sin(cam.pitch);
+  const y2 = d.y*cp - z1*sp2;
+  const z2 = d.y*sp2 + z1*cp;
+  const ez = z2 + cam.dist;
+  if (ez < 40) return null;                       // behind the lens
+  const s = VIEW.f / ez;
+  return {x: VIEW.W/2 + x1*s, y: VIEW.H/2 + y2*s, s, ez};
+}
+
+/* How much the distance should wash something out. Without this the far lobes are as crisp
+   as the near one and the whole thing flattens again. */
+const fog = q => Math.max(0.10, Math.min(1, (cam.dist*1.9 - q.ez) / (cam.dist*1.15)));
+
+function focus(i){
+  active = i;
+  const c = CL[i]; if (!c) return;
+  cam.tat = mul(c.c, 0.75);
+  cam.tdist = 1180;
+  // swing round so the lobe being read is facing us, rather than seen edge-on
+  cam.tyaw = Math.atan2(-c.c.x, 1) * 0.55 + 0.25;
+  cam.tpitch = -0.16 - c.c.y / SPAN * 0.10;
+  $('#bar').style.background = c.colour;
+  $('#h1').textContent = String(i+1).padStart(2,'0') + '  ' + c.title;
+  $('#h2').textContent = c.subtitle + '  ·  ' + c.found + '/' + c.total + ' nodes touched';
+  document.querySelectorAll('.tab').forEach((t,k) => {
+    t.classList.toggle('on', k===i);
+    t.style.background = k===i ? c.colour : '';
+    t.style.boxShadow  = k===i ? '0 0 18px '+c.colour+'66' : '';
+  });
+}
+
+/* ── drawing ──────────────────────────────────────────────────────────────── */
+function hex(c,a){
+  const n = parseInt(c.slice(1),16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+
+const DPR = () => Math.min(devicePixelRatio || 1, 2);
+
+function draw(){
+  const K = DPR();
+  const W = VIEW.W = cv.width = cv.clientWidth * K;
+  const H = VIEW.H = cv.height = cv.clientHeight * K;
+  VIEW.f = Math.min(W,H) * 1.15;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle = '#08080c'; ctx.fillRect(0,0,W,H);
+  if (!CL.length) return;
+
+  // Far lobes first, so near ones draw over them. Without this the ball in focus can be
+  // hidden behind one that is actually behind it.
+  const order = CL.map((c,i) => ({i, q: project(c.c)}))
+                  .filter(o => o.q)
+                  .sort((a,b) => b.q.ez - a.q.ez);
+
+  labelBoxes = [];
+  order.forEach(({i, q}) => drawLobe(CL[i], dust[i], i === active, q, K));
+  drawChips(K);
+  drawTrail(K);
+  spider(K);
+}
+
+function drawLobe(c, silk, near, q, K){
+  const base = near ? 1 : 0.17;
+  const f = fog(q);
+
+  // a bright core for the cluster being read, so the eye knows where it is
+  if (near){
+    const cg = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, c.r*q.s*0.85);
+    cg.addColorStop(0, hex(c.colour, 0.16*f));
+    cg.addColorStop(0.45, hex(c.colour, 0.05*f));
+    cg.addColorStop(1, hex(c.colour, 0));
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(q.x, q.y, c.r*q.s*0.85, 0, 7); ctx.fill();
+  }
+
+  // the nebula this cluster sits in
+  silk.haze.forEach(h => {
+    const hp = project(add(c.c, mul(h.at, c.r)));
+    if (!hp) return;
+    const rad = c.r * hp.s * h.r;
+    const g = ctx.createRadialGradient(hp.x, hp.y, 0, hp.x, hp.y, rad);
+    g.addColorStop(0, hex(c.colour, h.a*base*f));
+    g.addColorStop(0.55, hex(c.colour, h.a*0.35*base*f));
+    g.addColorStop(1, hex(c.colour, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(hp.x, hp.y, rad, 0, 7); ctx.fill();
+  });
+
+  // Filaments first, then the stars on top. Both are projected individually, so the cloud
+  // genuinely has depth rather than being a flat sprite that spins.
+  const pts = silk.stars.map(s => project(add(c.c, mul(s.p, c.r))));
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 0.7*K;
+  silk.links.forEach(l => {
+    const a = pts[l.a], b = pts[l.b];
+    if (!a || !b) return;
+    ctx.strokeStyle = hex(c.colour, l.al*base*f);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  });
+  silk.stars.forEach((s,i) => {
+    const pp = pts[i];
+    if (!pp) return;
+    const sz = s.s*K*Math.min(1.5, pp.s*560);
+    ctx.fillStyle = hex(c.colour, s.a*base*f*(near ? 1.0 : 0.8));
+    ctx.fillRect(pp.x, pp.y, sz, sz);
+  });
+
+  // edges between nodes, over the surface rather than through the ball
+  c.edges.forEach(([ai,bi]) => {
+    const na = c.nodes[ai], nb = c.nodes[bi];
+    if (!na || !nb) return;
+    const lit = na.hit && nb.hit;
+    ctx.strokeStyle = hex(c.colour, (lit?0.40:0.10)*base*f);
+    ctx.lineWidth = (lit?1.1:0.7)*K;
+    const pa = project(nodeW(c,na)), pb = project(nodeW(c,nb));
+    if (!pa || !pb) return;
+    ctx.beginPath(); ctx.moveTo(pa.x,pa.y); ctx.lineTo(pb.x,pb.y); ctx.stroke();
+  });
+
+  // Nodes, back of the ball first. Each is a shaded bead rather than a flat dot, which is
+  // what tells you which ones are on the near face.
+  const vd = viewDir();
+  const shown = c.nodes.map(n => ({n, p: project(nodeW(c,n)), toward: dot(n.dir, vd)}))
+                       .filter(o => o.p)
+                       .sort((a,b) => b.p.ez - a.p.ez);
+  shown.forEach(({n,p,toward}) => {
+    const behind = toward > 0.30;
+    const dim = behind ? 0.22 : 1;
+    const rr = ((n.hit ? 2.2 : 1.1) + n.weight*1.7) * K * Math.min(1.6, p.s*520);
+    if (n.hit && !behind){
+      ctx.fillStyle = hex(c.colour, 0.16*base*f);
+      ctx.beginPath(); ctx.arc(p.x,p.y,rr*2.1,0,7); ctx.fill();
+    }
+    const bead = ctx.createRadialGradient(p.x - rr*0.35, p.y - rr*0.40, rr*0.1,
+                                          p.x, p.y, rr);
+    const lit = n.kind==='chosen' ? '#ffffff' : c.colour;
+    bead.addColorStop(0, hex(lit === '#ffffff' ? '#ffffff' : lit,
+                             Math.min(1, (n.hit?1:0.42)*base*f*dim)));
+    bead.addColorStop(1, hex(lit === '#ffffff' ? '#8890a8' : lit,
+                             Math.min(1, (n.hit?0.45:0.14)*base*f*dim)));
+    ctx.fillStyle = bead;
+    ctx.beginPath(); ctx.arc(p.x,p.y,rr,0,7); ctx.fill();
+  });
+
+  if (near) drawLabels(c, shown, f, K);
+
+  // the lobe's own name, pinned above the ball in screen space so it never tumbles
+  const top = project(add(c.c, v3(0, -c.r*1.5, 0)));
+  if (top){
+    const fam = getComputedStyle(document.body).fontFamily;
+    ctx.font = `${(near?17:13)*K}px ${fam}`;
+    ctx.fillStyle = hex(c.colour, (near?0.85:0.20)*f);
+    ctx.fillText(c.title.toLowerCase(), top.x - c.r*q.s*0.7, top.y);
+    ctx.font = `${9.5*K}px ${fam}`;
+    ctx.fillStyle = hex(c.colour, (near?0.45:0.12)*f);
+    ctx.fillText(`${c.found}/${c.total} nodes`, top.x - c.r*q.s*0.7, top.y + 13*K);
+  }
+}
+
+/* The direction the camera is looking, in world space — used to decide which half of a ball
+   is facing us. */
+function viewDir(){
+  const cy = Math.cos(-cam.yaw), sy = Math.sin(-cam.yaw);
+  const cp = Math.cos(-cam.pitch), sp2 = Math.sin(-cam.pitch);
+  // inverse of the projection's rotation applied to (0,0,-1)
+  const v = v3(0, sp2, -cp);
+  return v3(v.x*cy + v.z*sy, v.y, -v.x*sy + v.z*cy);
+}
+
+/* Labels are placed every frame from the projected positions, then pushed apart. They are
+   dynamic now in the literal sense — they move with the ball and only appear for nodes on
+   the face you can see, which is what stopped "Healthcare" ending up under another label. */
+function drawLabels(c, shown, f, K){
+  const F = 12*K;
+  ctx.font = `${F}px ${getComputedStyle(document.body).fontFamily}`;
+  const mid = project(c.c);
+  const boxes = [];
+  shown.forEach(({n,p,toward}) => {
+    if (!n.hit || toward > 0.42) return;        // only what the crawler used, only the near side
+    const w = ctx.measureText(n.label).width + 14*K;
+    const left = mid && p.x > mid.x;
+    boxes.push({n, p, w, h: F*1.5,
+                x: left ? p.x - 9*K - w : p.x + 9*K, y: p.y - F*0.75, left,
+                a: Math.max(0.25, 1 - Math.max(0, toward)*8)});
+  });
+  for (let pass=0; pass<28; pass++){
+    let moved = false;
+    for (let i=0;i<boxes.length;i++){
+      for (let j=i+1;j<boxes.length;j++){
+        const a = boxes[i], b = boxes[j];
+        if (a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h){
+          const push = (a.y < b.y ? -1 : 1) * (a.h*0.6);
+          a.y += push; b.y -= push; moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  labelBoxes = boxes.map(b => ({x:b.x, y:b.y, w:b.w, h:b.h}));
+  boxes.forEach(({n,p,w,h,x,y,left,a}) => {
+    ctx.globalAlpha = a*f;
+    if (Math.abs(y + h/2 - p.y) > 3*K){
+      ctx.strokeStyle = hex(c.colour,.35);
+      ctx.lineWidth = 0.9*K;
+      ctx.beginPath();
+      ctx.moveTo(p.x + (left?-6*K:6*K), p.y);
+      ctx.lineTo(left ? x+w : x, y + h/2);
+      ctx.stroke();
+    }
+    if (n.kind==='chosen' || n.kind==='guard'){
+      ctx.fillStyle = n.kind==='guard' ? hex(c.colour,.92) : '#fff';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#07070b';
+    } else {
+      ctx.fillStyle = 'rgba(8,8,12,.74)';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = hex(c.colour, .95);
+    }
+    ctx.fillText(n.label, x+7*K, y + h*0.73);
+    ctx.globalAlpha = 1;
+  });
+}
+
+function drawTrail(K){
+  if (crawl.trail.length < 2) return;
+  ctx.lineWidth = 1.0*K;
+  ctx.strokeStyle = 'rgba(200,200,225,.11)';
+  ctx.beginPath();
+  let first = true;
+  crawl.trail.forEach(w => {
+    const p = project(w);
+    if (!p){ first = true; return; }
+    if (first){ ctx.moveTo(p.x,p.y); first = false; } else ctx.lineTo(p.x,p.y);
+  });
+  ctx.stroke();
+}
+
+function drawChips(K){
+  if (!chips.length) return;
+  const F = 11.5*K;
+  ctx.font = `${F}px ${getComputedStyle(document.body).fontFamily}`;
+  // Each chip belongs to a point on a ball, so it is projected fresh every frame and travels
+  // with the node as the structure turns.
+  const boxes = chips.map(ch => {
+    const age = crawl.t - ch.born;
+    const p = project(ch.w);
+    if (!p) return null;
+    const w = ctx.measureText(ch.text).width + 16*K;
+    return {ch, age, p, w, h: F*1.75,
+            x: p.x + (ch.side<0 ? -(w + 34*K) : 34*K),
+            y: p.y - F*0.9 + ch.side*26*K};
+  }).filter(b => b && b.age < CHIP_LIFE);
+  const hits = (a,b) => a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
+  for (let pass=0; pass<26; pass++){
+    let moved = false;
+    for (let i=0;i<boxes.length;i++){
+      for (let j=i+1;j<boxes.length;j++){
+        const a=boxes[i], b=boxes[j];
+        if (hits(a,b)){
+          const push = (a.y < b.y ? -1 : 1) * a.h*0.62;
+          a.y += push; b.y -= push; moved = true;
+        }
+      }
+      for (const lb of labelBoxes){
+        if (hits(boxes[i], lb)){
+          boxes[i].y += (boxes[i].y < lb.y ? -1 : 1) * boxes[i].h*0.75;
+          moved = true;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+  boxes.forEach(({ch, age, p, w, h, x, y}) => {
+    const fade = Math.min(1, age/0.22) * Math.min(1, (CHIP_LIFE-age)/1.1);
+    if (fade <= 0.01) return;
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = hex(ch.colour, .45);
+    ctx.lineWidth = 0.9*K;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(x < p.x ? x+w : x, y + h/2);
+    ctx.stroke();
+    if (ch.kind === 'guard'){
+      ctx.fillStyle = '#ff3d7f'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#07070b';
+    } else if (ch.kind === 'chosen'){
+      ctx.fillStyle = hex(ch.colour, .92); ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#07070b';
+    } else {
+      ctx.fillStyle = 'rgba(10,10,15,.88)'; ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = hex(ch.colour, .65); ctx.lineWidth = 1.0*K;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = hex(ch.colour, .95);
+    }
+    ctx.fillText(ch.text, x + 8*K, y + h*0.70);
+    ctx.globalAlpha = 1;
+  });
+  chips = chips.filter(ch => crawl.t - ch.born < CHIP_LIFE);
+}
+
+/* ── the spider ───────────────────────────────────────────────────────────────
+   The anatomy went the wrong way first. Drawing an abdomen, a cephalothorax and two eyes
+   produced something that read as a cartoon ant sitting on a diagram — recognisably a
+   spider, and childish, which is worse than abstract. The reference is not anatomical: it
+   is a dark disc with a soft rim and one bright mark at its centre, and what makes it alive
+   is the LEGS — a dozen fine filaments reaching out into the cloud and gripping actual
+   points in it.
+
+   So the legs are the animal, and they hold real things. Each one picks a node or a star
+   near the body and latches onto it. When the body moves far enough that a hold no longer
+   makes sense, that leg lets go and reaches for a nearer one, easing across over about a
+   fifth of a second — staggered, so most of them are gripping at any moment. A foot is a
+   WORLD point, so when the constellation turns the grip turns with it. */
+const FEET = 12;
+const GRAB = 1.15;            // how far out, in cluster radii, a leg will reach for a hold
+let sp = {dir: v3(0,1,0), lobe: 0, feet: null, head: 0, px: 0, py: 0,
+          mode: 'surface', target: null};
+
+/* Everything in this cluster a leg is allowed to hold: the real nodes first, then the
+   constellation's own stars. Cached per lobe, because it is the same list every frame. */
+function holds(li){
+  const c = CL[li], d = dust[li];
+  if (!c) return [];
+  if (c._holds) return c._holds;
+  const out = c.nodes.map(n => ({w: nodeW(c,n), node: true}));
+  (d ? d.stars : []).forEach((s,i) => { if (i % 3 === 0) out.push({w: add(c.c, mul(s.p, c.r))}); });
+  c._holds = out;
+  return out;
+}
+
+/* The twelve legs are each given a FIXED direction to look in, spread evenly round the body
+   in its own frame, and each takes the best hold near its own ray.
+
+   The first version just took the nearest free hold and penalised directions already used.
+   That is a greedy rule with no sense of the whole animal, and it produced exactly what it
+   should have: every leg reaching the same way, because the nearest free holds were all on
+   the side the body had just come from. Giving each leg its own sector is the fix, and it
+   is also what makes the splay stable as the body moves — leg 3 keeps looking where leg 3
+   looks, instead of all twelve re-racing for the same points. */
+function legRays(bodyW){
+  // Twelve directions spread evenly over a SPHERE, not round a ring in the body's own
+  // frame. The ring version kept bunching, and the reason is that it was built from
+  // `up = body - centre`, which is meaningless when the body is near the middle of the
+  // cloud and which tilts every ray the same way when it is not. Fibonacci directions
+  // cannot bunch: they are even in every direction by construction, so the animal reads as
+  // splayed from whatever angle the camera is at.
+  //
+  // They turn slowly with the body's heading, so the legs are not nailed to world axes.
+  const t = sp.head * 0.5;
+  const ct = Math.cos(t), st = Math.sin(t);
+  const out = [];
+  for (let k=0;k<FEET;k++){
+    const d = fib(k, FEET);
+    out.push(v3(d.x*ct + d.z*st, d.y, -d.x*st + d.z*ct));
+  }
+  return out;
+}
+
+/* The best hold along one leg's ray: near the body, and close to the direction that leg is
+   responsible for. Real nodes are preferred over passing stars, because the spider is
+   reading the graph and should be seen holding the graph. */
+function grab(bodyW, li, taken, ray){
+  const pool = holds(li);
+  const reach = CL[li].r * GRAB;
+  let best = null, bestScore = -1e9;
+  for (let i=0;i<pool.length;i++){
+    if (taken.has(i)) continue;
+    const d = sub(pool[i].w, bodyW);
+    const dist = len(d);
+    if (dist > reach || dist < CL[li].r*0.10) continue;
+    const aligned = dot(norm(d), ray);
+    if (aligned < 0.02) continue;                          // not this leg's business
+    const score = aligned*2.4 - Math.abs(dist/reach - 0.62)*1.6 + (pool[i].node ? 0.9 : 0);
+    if (score > bestScore){ bestScore = score; best = i; }
+  }
+  return best === null ? null : {i: best, w: pool[best].w, node: !!pool[best].node};
+}
+
+function spiderFeet(bodyW){
+  const li = sp.lobe;
+  if (!sp.feet || sp.feet.length !== FEET) sp.feet = Array.from({length:FEET}, () => null);
+  const rays = legRays(bodyW);
+  const taken = new Set(sp.feet.filter(Boolean).map(f => f.i));
+  const reach = CL[li].r * GRAB;
+  for (let k=0;k<FEET;k++){
+    const f = sp.feet[k];
+    const stale = !f || f.lobe !== li || len(sub(f.w, bodyW)) > reach*1.2
+                  || dot(norm(sub(f.w, bodyW)), rays[k]) < 0.05;
+    // staggered in four groups, so at any instant nine of the twelve are still holding on
+    if (stale && (Math.floor(crawl.t*11) % 4) === (k % 4)){
+      if (f) taken.delete(f.i);
+      let g = grab(bodyW, li, taken, rays[k]);
+      // No point to hold out that way — the cloud is not uniform, and near its edge half the
+      // rays find nothing. The leg still has to extend: a spider standing on the rim of a
+      // web does not fold six of its legs away, and leaving them unplaced is what made every
+      // leg reach the same direction, back toward the dense middle.
+      if (!g) g = {i: -1 - k, w: add(bodyW, mul(rays[k], reach*0.74)), node: false};
+      taken.add(g.i);
+      sp.feet[k] = {i: g.i, w: g.w, lobe: li, node: g.node,
+                    from: f ? f.w : bodyW, t: crawl.t};
+    } else if (f) taken.add(f.i);
+  }
+}
+
+/* A leg that has just let go eases across to its new hold instead of teleporting. This is
+   the one piece of motion that makes it read as latching ON to something rather than being
+   redrawn somewhere else. */
+function footAt(f, bodyW){
+  if (!f) return null;
+  const u = Math.min(1, (crawl.t - f.t) / 0.20);
+  if (u >= 1) return {w: f.w, lift: 0};
+  const e = u*u*(3-2*u);                                   // smoothstep
+  const w = add(f.from, mul(sub(f.w, f.from), e));
+  // arc it up out of the cloud on the way, so the step has a visible lift
+  const up = norm(sub(w, bodyW));
+  const lift = Math.sin(u*Math.PI);
+  return {w: add(w, mul(up, CL[sp.lobe].r*0.16*lift)), lift};
+}
+
+function spider(K){
+  const c = CL[sp.lobe] || CL[0]; if (!c) return;
+  const col = c.colour;
+  const bodyW = crawl.p;
+  const b = project(bodyW);
+  if (!b) return;
+  spiderFeet(bodyW);
+
+  // One scale for the whole animal, taken from the CLUSTER it is in rather than from the
+  // camera. Sized off the camera it stayed the same size while the cluster it was on grew
+  // and shrank, so on a near one it covered the thing it was meant to be reading.
+  const U = Math.max(0.3*K, (c.r * b.s) / 165);
+
+  const vx = b.x - sp.px, vy = b.y - sp.py;
+  if (Math.hypot(vx,vy) > 0.6*K){
+    const want = Math.atan2(vy, vx);
+    let d = want - sp.head;
+    while (d >  Math.PI) d -= Math.PI*2;
+    while (d < -Math.PI) d += Math.PI*2;
+    sp.head += d * 0.22;
+  }
+  sp.px = b.x; sp.py = b.y;
+
+  // Legs: body -> knee -> foot, far ones first so near ones cross over them. The knee is
+  // pushed off the body-foot line, which is what gives a spider leg its arch.
+  ctx.lineCap = 'round';
+  const legs = [];
+  sp.feet.forEach((f,i) => {
+    const at = footAt(f, bodyW);
+    if (!at) return;
+    const fp = project(at.w);
+    if (!fp) return;
+    const dx = fp.x - b.x, dy = fp.y - b.y;
+    const nx = -dy, ny = dx, nl = Math.hypot(nx,ny) || 1;
+    const arch = (0.20 + at.lift*0.18 + Math.sin(crawl.t*2.3 + i)*0.02);
+    legs.push({fp, i, lift: at.lift, node: f.node,
+               kx: b.x + dx*0.55 + nx/nl*Math.hypot(dx,dy)*arch,
+               ky: b.y + dy*0.55 + ny/nl*Math.hypot(dx,dy)*arch});
+  });
+  legs.sort((a,z) => z.fp.ez - a.fp.ez);
+  legs.forEach(({fp,kx,ky,lift,node}) => {
+    ctx.strokeStyle = hex(col, .18); ctx.lineWidth = 4.6*U;
+    ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.quadraticCurveTo(kx,ky,fp.x,fp.y); ctx.stroke();
+    ctx.strokeStyle = hex(col, lift ? .55 : .95); ctx.lineWidth = 2.0*U;
+    ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.quadraticCurveTo(kx,ky,fp.x,fp.y); ctx.stroke();
+    // the grip itself — brighter on a real node than on a passing star, because holding the
+    // graph is the thing worth seeing
+    ctx.fillStyle = hex(col, node ? 1 : .5);
+    ctx.beginPath(); ctx.arc(fp.x,fp.y, (node?2.6:1.7)*U, 0, 7); ctx.fill();
+    if (node && !lift){
+      ctx.strokeStyle = hex(col,.5); ctx.lineWidth = 0.9*U;
+      ctx.beginPath(); ctx.arc(fp.x,fp.y, 5.4*U, 0, 7); ctx.stroke();
+    }
+  });
+
+  // The body: a dark disc with a soft rim and one bright mark, as in the reference. No
+  // anatomy — the legs are what make it an animal.
+  const glow = ctx.createRadialGradient(b.x,b.y,0, b.x,b.y,54*U);
+  glow.addColorStop(0, hex(col,.42)); glow.addColorStop(.5, hex(col,.12));
+  glow.addColorStop(1, hex(col,0));
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(b.x,b.y,54*U,0,7); ctx.fill();
+
+  const breathe = 1 + Math.sin(crawl.t*3.1)*0.04;
+  const Rb = 17*U*breathe;
+  const disc = ctx.createRadialGradient(b.x - Rb*0.3, b.y - Rb*0.35, Rb*0.15, b.x, b.y, Rb);
+  disc.addColorStop(0, 'rgba(26,26,38,.98)');
+  disc.addColorStop(1, 'rgba(6,6,10,.99)');
+  ctx.fillStyle = disc; ctx.beginPath(); ctx.arc(b.x,b.y,Rb,0,7); ctx.fill();
+  ctx.strokeStyle = hex(col,.85); ctx.lineWidth = 1.5*U;
+  ctx.beginPath(); ctx.arc(b.x,b.y,Rb,0,7); ctx.stroke();
+  // a second rim, a touch outside, which is what gives the reference body its halo
+  ctx.strokeStyle = hex(col,.22); ctx.lineWidth = 1.0*U;
+  ctx.beginPath(); ctx.arc(b.x,b.y,Rb*1.55,0,7); ctx.stroke();
+
+  ctx.save();
+  ctx.translate(b.x,b.y); ctx.rotate(sp.head + crawl.t*0.4);
+  ctx.fillStyle = '#ff3d7f';
+  const m = 6.2*U*breathe;
+  ctx.beginPath();
+  ctx.moveTo(0,-m); ctx.lineTo(m,0); ctx.lineTo(0,m); ctx.lineTo(-m,0);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* The update is time-based, not frame-based. A frame-based ease runs at whatever speed the
+   device happens to render at — the same crawl took seconds on one machine and minutes on a
+   throttled one — so everything here is expressed per second and multiplied by the real
+   elapsed time. `frame(dt)` is the whole animation; `tick` only supplies dt.
+
+   Movement comes in two modes, because a ball of silk is not a plane:
+
+   * **surface** — the usual one. The spider's direction on the ball rotates toward the
+     target node's direction along the shortest arc, at an angular speed. Angular, not
+     linear, so it crosses a small lobe and a large one at the same apparent pace.
+   * **thread**  — between lobes, where there is no surface to walk on. It travels the
+     straight line between the two balls, which is the strand that joins them. */
+/* The crawler moves through the cloud, not over a shell — a constellation has an inside, so
+   the straight line between two nodes is the right path and the arc round the outside is
+   not. It still eases, and it is MUCH faster than the first pass: the walk is the thing
+   being watched, and a crawler that takes four seconds to cross a cluster reads as a
+   loading bar rather than as something hunting. */
+const WALK_SPEED = 620;        // world units per second inside a cluster
+const THREAD_SPEED = 2600;     // world units per second on the strand between clusters
+const DWELL = 0.07;            // seconds to rest on a node, so the log stays readable
+const ARRIVE = 9;              // world units that counts as arrived
+
+function pushTrail(w){
+  const last = crawl.trail.at(-1);
+  if (!last || len(sub(w, last)) > 7) crawl.trail.push(w);
+  if (crawl.trail.length > 1200) crawl.trail.shift();
+}
+
+function targetW(){
+  const t = crawl.target;
+  if (!t || !CL[t.lobe]) return null;
+  return t.at || add(CL[t.lobe].c, mul(t.dir, CL[t.lobe].r * (t.rad || 1)));
+}
+
+/* Advance toward the target. Returns true on arrival. Eased at both ends — it leaves a node
+   gathering pace and settles onto the next one, which is what a step looks like. */
+function advance(dt, scale){
+  const to = targetW();
+  if (!to) return false;
+  const d = sub(to, crawl.p);
+  const dist = len(d);
+  if (dist < ARRIVE){
+    if (sp.mode === 'thread'){ sp.mode = 'surface'; sp.lobe = crawl.target.lobe; }
+    sp.dir = crawl.target.dir || sp.dir;
+    return true;
+  }
+  const top = (sp.mode === 'thread' ? THREAD_SPEED : WALK_SPEED) * scale;
+  // ease out over the last stretch so it lands rather than stopping dead
+  const v = top * Math.max(0.28, Math.min(1, dist/90));
+  crawl.p = add(crawl.p, mul(norm(d), Math.min(dist, v*dt)));
+  pushTrail(crawl.p);
+  if (sp.mode !== 'thread'){
+    const c = CL[sp.lobe];
+    if (c) sp.dir = norm(sub(crawl.p, c.c));
+  }
+  return false;
+}
+
+function frame(dt){
+  dt = Math.min(dt, 0.05);                 // a long stall must not teleport the crawler
+  crawl.t += dt;
+  if (crawl.running){
+    crawl.wait = Math.max(0, (crawl.wait||0) - dt);
+    if (advance(dt, 1) && !crawl.wait){ crawl.wait = DWELL; step(); }
+  } else if (crawl.idle && crawl.pick){
+    if (advance(dt, 0.42)){
+      crawl.wait = Math.max(0,(crawl.wait||0)-dt);
+      if (!crawl.wait){ crawl.wait = 1.1; crawl.pick(); }
+    }
+  }
+  // The structure turns on its own unless the viewer has taken hold of it. This is what
+  // makes the depth read: a still projection of a sphere of dots looks like a flat disc.
+  if (!cam.drag) cam.tyaw += cam.spin*dt;
+  // the camera eases per second too, so the move feels the same on any machine
+  const e = 1 - Math.pow(0.0001, dt);
+  cam.yaw   += (cam.tyaw-cam.yaw)*e;
+  cam.pitch += (cam.tpitch-cam.pitch)*e;
+  cam.dist  += (cam.tdist-cam.dist)*e;
+  cam.at = add(cam.at, mul(sub(cam.tat, cam.at), e));
+  draw();
+}
+
+let _last = 0, _beat = 0;
+function tick(now){
+  now = now || performance.now();
+  const dt = _last ? (now-_last)/1000 : 0.016;
+  _last = now; _beat = performance.now();
+  frame(dt);
+  requestAnimationFrame(tick);
+}
+/* Some browsers throttle requestAnimationFrame hard — a backgrounded tab, low-power mode, a
+   machine under load. A frozen canvas is indistinguishable from a broken page, so if no
+   frame has run for a second this drives it instead until rAF comes back. */
+setInterval(() => {
+  if (performance.now() - _beat > 1000){ _last = 0; tick(performance.now()); }
+}, 1000);
+
+/* ── the walk ─────────────────────────────────────────────────────────────── */
+let logLines = [], t0 = 0;
+/* A target is now a point on a ball: which lobe, and which direction on it. */
+function aim(lobe, dir, rad){
+  crawl.target = {lobe, dir, rad: rad === undefined ? 1 : rad};
+  // nothing to walk through between two clusters, so cross on the strand that joins them
+  if (lobe !== sp.lobe) sp.mode = 'thread';
+}
+
+function step(){
+  const c = CL[crawl.i];
+  if (!c) return;
+  if (crawl.j >= c.path.length){
+    crawl.i++; crawl.j = 0;
+    if (crawl.i >= CL.length){ crawl.running = false; done(); idle(); return; }
+    focus(crawl.i);
+    const nx = CL[crawl.i];
+    // step onto the new ball at the face turned toward the one we are leaving, so the
+    // crossing is the short way round rather than through the middle of the structure
+    aim(crawl.i, norm(sub(CL[sp.lobe].c, nx.c)), 1.05);
+    return;
+  }
+  const n = c.nodes[c.path[crawl.j]];
+  aim(crawl.i, n.dir, n.rad);
+  if (n.chip){
+    chips.push({text:n.chip, kind:n.kind, colour:c.colour,
+                w: nodeW(c,n),              // a world point, projected fresh every frame
+                born:crawl.t, side: chips.length % 2 ? 1 : -1});
+    if (chips.length > 7) chips.shift();
+  }
+  pushLog(c, n);
+  bump(c.key);
+  crawl.j++;
+}
+
+function pushLog(c,n){
+  const verb = {chosen:'walk', guard:'flag', rule:'link', laya:'link', learn:'walk',
+                recall:'link', input:'read'}[n.kind] || 'read';
+  const el = document.createElement('div');
+  el.className = 'lg';
+  const secs = crawl.t;
+  el.innerHTML = `<span class="t">${String(Math.floor(secs/60)).padStart(2,'0')}:${(secs%60).toFixed(1).padStart(4,'0')}</span>`
+    + `<span class="v ${verb}">${verb}</span>`
+    + `<span class="n" style="color:${n.hit?'#9a9ab0':'#4a4a5c'}">${n.label}</span>`;
+  const box = $('#log');
+  box.appendChild(el);
+  while (box.children.length > 11) box.removeChild(box.firstChild);
+  $('#rate').textContent = (logLines.length/Math.max(secs,.1)).toFixed(1) + ' n/s';
+  logLines.push(1);
+}
+
+const seen = {};
+function bump(key){
+  seen[key] = (seen[key]||0)+1;
+  const w = PLAN.webs.find(x=>x.key===key);
+  const el = document.getElementById('fill-'+key);
+  if (el && w) el.style.width = Math.min(100, seen[key]/Math.max(w.total,1)*100) + '%';
+  const v = document.getElementById('val-'+key);
+  if (v && w) v.textContent = seen[key] + '/' + w.total;
+  const walked = Object.values(seen).reduce((a,b)=>a+b,0);
+  const all = PLAN.webs.reduce((a,x)=>a+x.path.length,0) || 1;
+  gauge(PLAN.score.value * Math.min(1, walked/all));
+}
+
+function done(){
+  $('#h1').textContent = String(CL.length).padStart(2,'0') + '  DONE';
+  $('#h2').textContent = PLAN.intent_label + '  ·  ' + PLAN.ms + 'ms  ·  ' + PLAN.model;
+  gauge(PLAN.score.value);
+  $('#say').innerHTML = say(PLAN.answer);
+}
+/* After the crawl the spider patrols the web rather than freezing. A still frame of a
+   stopped crawler is indistinguishable from a broken page. */
+function idle(){
+  crawl.idle = true;
+  const pick = () => {
+    const i = (Math.random()*CL.length)|0;
+    const c = CL[i];
+    const n = c.nodes[(Math.random()*c.nodes.length)|0];
+    aim(i, n.dir, n.rad);
+  };
+  pick();
+  crawl.pick = pick;
+}
+
+const esc = s => String(s||'').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+/* The engine writes **bold** for the part of an answer that matters — the status, the
+   amount. Escaped first, so the markup is the only thing that is ever interpreted. */
+const say = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+
+/* ── panels ───────────────────────────────────────────────────────────────── */
+function panels(plan){
+  $('#tabs').innerHTML = '';
+  plan.webs.forEach((w,i) => {
+    const t = document.createElement('div');
+    t.className = 'tab'; t.textContent = w.title.toLowerCase();
+    t.onclick = () => focus(i);
+    $('#tabs').appendChild(t);
+  });
+
+  $('#secs').innerHTML = plan.webs.map(w => `
+    <div class="sec">
+      <div class="secr"><span class="secn">${w.title.toLowerCase()}</span>
+        <span class="secv" id="val-${w.key}">0/${w.total}</span></div>
+      <div class="track"><div class="fill" id="fill-${w.key}" style="background:${w.colour}"></div></div>
+    </div>`).join('');
+  $('#nwebs').textContent = plan.webs.length;
+
+  $('#heatt').textContent = plan.heat.title;
+  $('#heatv').textContent = plan.heat.total;
+  $('#heat').innerHTML = plan.heat.rows.map(r => `
+    <div class="hr"><span class="hl">${esc(r.label)}</span>
+      <span class="hc">${r.cells.map(v =>
+        `<i class="cell" style="background:${v>0.14?hexjs(r.colour,Math.max(.14,v)):'#15151d'}"></i>`).join('')}</span>
+      <span class="hv">${esc(r.value)}</span></div>`).join('');
+
+  $('#smodel').textContent = plan.score.model;
+  $('#snote').innerHTML = plan.score.flags
+    ? `<span class="f">guards fired · ${plan.score.flags}</span><br><span style="color:#5a5a6e">${esc(plan.score.note)}</span>`
+    : `<span style="color:#5a5a6e">${esc(plan.score.note)}</span>`;
+  $('#code').innerHTML = plan.code.map(l =>
+    `<div class="${l.cls}">${esc(l.text) || '&nbsp;'}</div>`).join('');
+  $('#lps').textContent = plan.code.length + ' ln';
+  radar(plan.radar);
+  gauge(0);
+}
+function hexjs(c,a){const n=parseInt(c.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+
+function radar(axes){
+  const box = $('#radar');
+  box.innerHTML = '<canvas width="260" height="230" style="width:100%;height:100%"></canvas>';
+  const c = box.firstChild.getContext('2d'), W=260,H=230,cx=W/2,cy=H/2+6,R=76;
+  c.clearRect(0,0,W,H);
+  for (let ring=1; ring<=3; ring++){
+    c.strokeStyle='#1e1e28'; c.lineWidth=1; c.beginPath();
+    axes.forEach((_,i)=>{const a=-Math.PI/2+i/axes.length*Math.PI*2, r=R*ring/3;
+      i?c.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r):c.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r)});
+    c.closePath(); c.stroke();
+  }
+  c.beginPath();
+  axes.forEach((ax,i)=>{const a=-Math.PI/2+i/axes.length*Math.PI*2, r=R*Math.max(ax.value,4)/100;
+    i?c.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r):c.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r)});
+  c.closePath();
+  c.fillStyle='rgba(82,227,154,.17)'; c.fill();
+  c.strokeStyle='#52e39a'; c.lineWidth=1.4; c.stroke();
+  c.font='8px monospace'; c.fillStyle='#5a5a6e'; c.textAlign='center';
+  axes.forEach((ax,i)=>{const a=-Math.PI/2+i/axes.length*Math.PI*2;
+    c.fillText(ax.axis, cx+Math.cos(a)*(R+13), cy+Math.sin(a)*(R+13)+3)});
+}
+
+let gshown = 0;
+function gauge(target){
+  const c = $('#gc').getContext('2d');
+  const run = () => {
+    gshown += (target-gshown)*0.12;
+    c.clearRect(0,0,150,150);
+    c.lineWidth=9; c.lineCap='round';
+    c.strokeStyle='#17171f'; c.beginPath(); c.arc(75,75,54,Math.PI*0.75,Math.PI*2.25); c.stroke();
+    const col = CL[active] ? CL[active].colour : '#52e39a';
+    c.strokeStyle=col;
+    c.beginPath(); c.arc(75,75,54,Math.PI*0.75,Math.PI*0.75+Math.PI*1.5*(gshown/100)); c.stroke();
+    $('#gnum').textContent = Math.round(gshown);
+    if (Math.abs(target-gshown) > 0.4) requestAnimationFrame(run);
+  };
+  run();
+}
+
+/* ── run ──────────────────────────────────────────────────────────────────── */
+/* Start a crawl from a plan, wherever it came from — typed here, or picked up live from a
+   conversation happening on the payment screen. */
+function startCrawl(plan){
+  if (!plan || plan.error) { $('#err').textContent = 'crawl failed — ' + (plan && plan.error || 'no plan'); return; }
+  $('#err').textContent = ''; $('#say').textContent = '';
+  $('#log').innerHTML = ''; logLines = []; Object.keys(seen).forEach(k=>delete seen[k]);
+  PLAN = plan; layout(plan); panels(plan);
+  chips = [];
+  const first = CL[0], d0 = v3(0,1,0);
+  crawl = {i:0, j:0, p: add(first.c, mul(d0, first.r*1.10)),
+           target: {lobe:0, dir:d0}, trail:[], running:true, t:0, wait:0};
+  sp = {dir: d0, lobe: 0, feet: null, head: 0, px: 0, py: 0, mode: 'surface'};
+  CL.forEach(c => { delete c._holds; });
+  cam.at = cam.tat = mul(first.c, 0.75);
+  cam.dist = cam.tdist = 1180;
+  t0 = performance.now();
+  handoff(plan);
+  focus(0);
+}
+
+/* This screen shows how an answer was reached. It does not move money and must not pretend
+   to: a payment that visibly stalls here with no PIN prompt reads as a broken wallet, which
+   is exactly what it looked like. So the crawl runs, and the screen says where to finish. */
+function handoff(plan){
+  const el = $('#handoff');
+  if (plan.moves_money && plan.proposes){
+    el.innerHTML = 'this screen shows the thinking, it does not move money — '
+                 + '<a href="/assist">finish on the payment screen</a>';
+    el.style.display = 'block';
+  } else { el.style.display = 'none'; }
+}
+
+async function run(){
+  const q = $('#q').value.trim(); if (!q) return;
+  $('#go').disabled = true;
+  try{
+    const r = await fetch('/api/webs', {method:'POST', headers:{'content-type':'application/json'},
+                                        body: JSON.stringify({q})});
+    startCrawl(await r.json());
+  }catch(e){ $('#err').textContent = 'crawl failed — ' + e.message; }
+  $('#go').disabled = false;
+}
+
+/* Follow whatever conversation is happening elsewhere. The plan is built from the SAME
+   answer the chat produced and stashed server-side, so watching it never re-runs the engine
+   — which for a payment would mean asking it twice. */
+function follow(){
+  try{
+    const es = new EventSource('/events');
+    es.onmessage = async (m) => {
+      let ev; try { ev = JSON.parse(m.data); } catch(_) { return; }
+      if (ev.kind !== 'cx.webs') return;
+      try{
+        const r = await fetch('/api/webs/last?session=' + encodeURIComponent(ev.detail));
+        const plan = await r.json();
+        if (plan && plan.webs){ $('#q').value = plan.question || ''; startCrawl(plan); }
+      }catch(_){ /* a dropped follow is not worth an error on screen */ }
+    };
+    es.onerror = () => { $('#live').textContent = 'live · off'; };
+    $('#live').textContent = 'live';
+  }catch(_){ $('#live').textContent = 'live · off'; }
+}
+$('#go').onclick = run;
+$('#q').addEventListener('keydown', e => { if (e.key==='Enter') run(); });
+addEventListener('resize', draw);
+
+/* Turning the structure by hand. The auto-orbit is enough to read the depth, but an
+   investor who can take hold of it and look behind a lobe believes it is really there in a
+   way that watching it spin does not achieve. Dragging parks the spin; letting go resumes
+   it, from wherever they left it rather than snapping back. */
+cv.style.cursor = 'grab';
+cv.addEventListener('pointerdown', e => {
+  cam.drag = {x: e.clientX, y: e.clientY, yaw: cam.tyaw, pitch: cam.tpitch};
+  cv.setPointerCapture(e.pointerId);
+  cv.style.cursor = 'grabbing';
+});
+cv.addEventListener('pointermove', e => {
+  if (!cam.drag) return;
+  const k = 0.006;
+  cam.tyaw   = cam.drag.yaw   + (e.clientX - cam.drag.x)*k;
+  // clamped short of the poles, where the projection degenerates and the balls shear
+  cam.tpitch = Math.max(-1.2, Math.min(1.2,
+                 cam.drag.pitch + (e.clientY - cam.drag.y)*k));
+});
+const letGo = () => { cam.drag = null; cv.style.cursor = 'grab'; };
+cv.addEventListener('pointerup', letGo);
+cv.addEventListener('pointercancel', letGo);
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  cam.tdist = Math.max(420, Math.min(3200, cam.tdist * (1 + Math.sign(e.deltaY)*0.11)));
+}, {passive:false});
+tick();
+follow();
+run();
+</script>

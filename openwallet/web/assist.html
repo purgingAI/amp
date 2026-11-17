@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenWallet · Help</title>
+<style>
+  :root{
+    --red:#ef1a23; --red2:#e5472c; --orange:#f18918; --orange2:#f36331;
+    --gold:#fbc007; --green:#28a745; --laya:#7c5cff;
+    --bg:#f6f7f9; --ink:#1f2430; --muted:#6b7280; --dim:#9aa3af;
+    --line:#e6e9ee; --panel:#fff;
+    /* Without this, Safari styles native controls — the text input, scrollbars, the
+       keyboard — from the DEVICE theme while the page stays light, which is how an input
+       ends up dark-on-dark on a phone set to dark mode. Declaring both lets the browser
+       match whichever theme the media query below has selected. */
+    color-scheme: light dark;
+    --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--ui);
+       display:flex;justify-content:center}
+  .phone{width:min(460px,100%);background:var(--panel);display:flex;flex-direction:column;
+         height:100%;box-shadow:0 0 60px rgba(31,36,48,.14);position:relative;overflow:hidden}
+
+  header{background:linear-gradient(120deg,var(--red) 0%,var(--orange) 58%,var(--gold) 100%);
+         color:#fff;padding:16px 18px 20px;flex:0 0 auto;position:relative;overflow:hidden}
+  header:after{content:"";position:absolute;inset:0;
+               background:radial-gradient(420px 120px at 12% -20%,rgba(255,255,255,.3),transparent)}
+  .brand{font-weight:800;font-size:19px;position:relative;z-index:1}
+  .brand span{color:#ffe9a8}
+  .sub{font-size:12.5px;opacity:.92;margin-top:2px;position:relative;z-index:1}
+  .bal{margin-top:13px;display:flex;align-items:baseline;gap:8px;position:relative;z-index:1}
+  .bal b{font-size:27px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .bal i{font-style:normal;font-size:12px;opacity:.85}
+
+  .thread{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 14px 8px;
+          display:flex;flex-direction:column;gap:11px;scroll-behavior:smooth}
+
+  .msg{max-width:88%;padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;
+       animation:pop .38s cubic-bezier(.34,1.4,.64,1) both;word-break:break-word}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  .me{align-self:flex-end;background:linear-gradient(135deg,var(--red),var(--orange));
+      color:#fff;border-bottom-right-radius:5px;box-shadow:0 3px 12px rgba(239,26,35,.25)}
+  .bot{align-self:flex-start;background:#f2f4f7;border-bottom-left-radius:5px}
+  .bot.decline{background:#fff4ec;border:1px solid #ffd9c0;color:#8a3a06}
+  .bot.good{background:#eefaf1;border:1px solid #c6ebd2}
+  .bot.stop{background:#fdecec;border:1px solid #f6c9c9}
+
+  .thinking{align-self:flex-start;display:flex;gap:5px;padding:13px 16px;background:#f2f4f7;
+            border-radius:16px;border-bottom-left-radius:5px}
+  .thinking i{width:7px;height:7px;border-radius:50%;background:#b9c0cb;display:block;
+              animation:bob 1.1s infinite}
+  .thinking i:nth-child(2){animation-delay:.16s}
+  .thinking i:nth-child(3){animation-delay:.32s}
+  @keyframes bob{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+
+  /* the little "how it decided" strip under a bot answer */
+  .why{align-self:flex-start;max-width:88%;display:flex;gap:6px;flex-wrap:wrap;
+       margin:-4px 0 2px 4px;animation:pop .4s .1s both}
+  .why b{font:700 9.5px var(--mono);letter-spacing:.4px;padding:3px 8px;border-radius:999px;
+         background:#f2f4f7;color:#7a828f;border:1px solid var(--line);font-weight:700}
+  .why b.model{background:#f6f3ff;color:#4c35a8;border-color:#d7cbff}
+  .why b.laya{background:#efe9ff;color:#4c35a8;border-color:#d7cbff}
+  .why b.out{background:#fff8ec;color:#8a5a12;border-color:#f6ddb4}
+
+  .opts{align-self:flex-start;display:flex;flex-direction:column;gap:7px;max-width:92%;
+        animation:pop .42s .12s both}
+  .opt{text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;
+       padding:11px 13px;font:600 13.5px var(--ui);color:var(--ink);cursor:pointer;
+       display:flex;align-items:center;gap:10px;transition:all .18s;
+       box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .opt:hover{border-color:var(--orange);background:#fffaf4;transform:translateX(3px);
+             box-shadow:0 4px 14px rgba(241,137,24,.16)}
+  .opt .ic{width:28px;height:28px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;
+           background:linear-gradient(135deg,#fff1e2,#ffe6c7);font-size:14px}
+  .opt.primary{border-color:transparent;color:#fff;
+               background:linear-gradient(135deg,var(--red),var(--orange));
+               box-shadow:0 4px 14px rgba(239,26,35,.28)}
+  .opt.primary .ic{background:rgba(255,255,255,.22)}
+  .opt.primary:hover{background:linear-gradient(135deg,#d5151d,#e37c10)}
+
+  /* merchant card */
+  .mcard{align-self:flex-start;max-width:92%;border:1px solid var(--line);border-radius:14px;
+         padding:12px 13px;background:#fff;display:flex;gap:11px;align-items:center;
+         animation:pop .42s both;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .mcard .pin{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+              background:linear-gradient(135deg,#fff1e2,#ffdfb5);font-size:17px;flex:0 0 auto}
+  .mcard .nm{font-weight:700;font-size:14px}
+  .mcard .dt{font-size:12px;color:var(--muted)}
+  .mcard .of{margin-left:auto;font:700 11px var(--ui);color:#17733a;background:#eefaf1;
+             border:1px solid #c6ebd2;padding:4px 9px;border-radius:999px;text-align:center}
+
+  .rcpt{align-self:flex-start;max-width:92%;border:1px solid var(--line);border-radius:14px;
+        background:#fff;padding:13px 15px;animation:pop .42s both;
+        box-shadow:0 2px 10px rgba(31,36,48,.07)}
+  .rcpt .rh{font-weight:800;font-size:13.5px;margin-bottom:9px}
+  .rcpt .rr{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+            padding:5px 0;font-size:13px;color:#5a6472}
+  .rcpt .rr b{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
+  .rcpt .rr.off{color:#17733a} .rcpt .rr.off b{color:#17733a}
+  .rcpt .rr.total{border-top:1px solid var(--line);margin-top:5px;padding-top:9px;
+                  font-size:15px;color:var(--ink);font-weight:700}
+  .rcpt .rr.total b{font-size:18px}
+
+  .result{align-self:flex-start;max-width:92%;border-radius:14px;padding:13px 15px;
+          animation:pop .45s both;border:1px solid}
+  .result.ok{background:#eefaf1;border-color:#bfe8cd}
+  .result.bad{background:#fdecec;border-color:#f6c9c9}
+  .result .t{font-weight:800;font-size:13.5px;display:flex;align-items:center;gap:7px}
+  .result .s{font-size:12.5px;color:#4f5b68;margin-top:4px;line-height:1.45}
+  .result .ref{font:11px var(--mono);color:var(--dim);margin-top:5px}
+
+  footer{flex:0 0 auto;border-top:1px solid var(--line);padding:10px 12px 14px;background:#fff}
+  .quick{display:flex;gap:6px;overflow:auto;padding-bottom:9px;scrollbar-width:none}
+  .quick::-webkit-scrollbar{display:none}
+  .quick button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:999px;
+                padding:6px 12px;font:12.5px var(--ui);color:var(--muted);cursor:pointer;
+                transition:all .16s;white-space:nowrap}
+  .quick button:hover{border-color:var(--orange);color:var(--red2);background:#fff8f1}
+  .bar{display:flex;gap:8px;align-items:center}
+  .bar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:999px;
+             padding:12px 16px;background:var(--panel);color:var(--ink);
+             font:14.5px var(--ui);outline:none;transition:border-color .2s,box-shadow .2s;
+             -webkit-appearance:none;appearance:none}
+  .bar input::placeholder{color:var(--dim)}
+  .bar input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(241,137,24,.14)}
+  .rnd{width:42px;height:42px;border-radius:14px;border:0;cursor:pointer;flex:0 0 auto;
+       display:grid;place-items:center;color:#fff;
+       background:linear-gradient(135deg,var(--red),var(--orange));
+       box-shadow:0 3px 12px rgba(239,26,35,.26);transition:transform .15s,box-shadow .2s,
+       background .2s}
+  .rnd svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;
+           stroke-linecap:round;stroke-linejoin:round}
+  .rnd:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(239,26,35,.34)}
+  .rnd:active{transform:translateY(0)}
+  /* The mic is a quiet secondary control, not a second primary button competing with Send. */
+  .rnd.mic{background:#f2f4f7;color:#64707f;box-shadow:none;border:1px solid var(--line)}
+  .rnd.mic:hover{background:#eceff3;color:var(--ink);transform:none}
+  .rnd.mic.off{opacity:.45;cursor:not-allowed}
+  .rnd.mic.rec{background:linear-gradient(135deg,#4c35a8,var(--laya));color:#fff;
+               border-color:transparent;animation:recp 1.3s infinite}
+  @keyframes recp{0%{box-shadow:0 0 0 0 rgba(124,92,255,.5)}
+                  70%{box-shadow:0 0 0 14px rgba(124,92,255,0)}
+                  100%{box-shadow:0 0 0 0 rgba(124,92,255,0)}}
+  /* A statement, not a paragraph. Right-aligned amounts so they can be compared by eye —
+     the whole point of showing a list is that the customer scans it.
+
+     Written against the page's OWN variables. The first version used `var(--card,#15161c)`,
+     and since `--card` does not exist anywhere in this stylesheet every row fell back to
+     near-black on a white page. A fallback colour for a variable that was never defined is
+     not a fallback, it is the value. */
+  .stmt{margin:6px 0 2px}
+  .stmt .row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:11px;
+    background:var(--panel);border:1px solid var(--line);margin-bottom:5px;
+    cursor:pointer;transition:border-color .15s,transform .1s,box-shadow .15s}
+  .stmt .row:hover{border-color:#d4d9e2;transform:translateX(1px);
+    box-shadow:0 2px 10px rgba(31,36,48,.06)}
+  .stmt .l{flex:1;min-width:0}
+  .stmt .l b{display:block;font-size:13px;font-weight:600;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .stmt .l i{display:block;font-style:normal;font-size:10.5px;color:var(--muted);margin-top:2px}
+  .stmt .r{text-align:right;flex-shrink:0}
+  .stmt .r b{display:block;font-size:13px;font-variant-numeric:tabular-nums}
+  .stmt .st{display:inline-block;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;
+    padding:1px 6px;border-radius:999px;margin-top:3px;background:#eef1f5;color:var(--muted)}
+  .stmt .s-delivered{background:#e7f7ed;color:#1b7f3b}
+  .stmt .s-paid{background:#e7f7ed;color:#1b7f3b}
+  .stmt .s-failed{background:#fdeaea;color:#b42318}
+  .stmt .s-in-progress{background:#fff4e2;color:#9a5b00}
+  .stmt .s-due{background:#fff4e2;color:#9a5b00}
+  .stmt .s-overdue{background:#fdeaea;color:#b42318}
+  .stmt .s-being-reviewed{background:#fff4e2;color:#9a5b00}
+  .stmt .s-refunded{background:#eaf0ff;color:#2b4fb8}
+  .stmt .s-unknown{background:#eef1f5;color:var(--muted)}
+  .stmt .s-you-owe{background:#fdeaea;color:#b42318}
+  .stmt .s-owes-you{background:#e7f7ed;color:#1b7f3b}
+  .stmt .s-settled{background:#eef1f5;color:var(--muted)}
+
+  /* ── the PIN sheet ────────────────────────────────────────────────────────────────────
+     A credential prompt is not a chat message. It takes over the screen so there is no
+     doubt what the digits are for, it cannot be scrolled away from mid-entry, and it is
+     dismissable — a customer who did not expect to be asked for a PIN must be able to back
+     out without guessing.
+
+     Light palette, like the rest of the page; the dark block further down re-points the
+     variables rather than this rule, so there is one definition of the sheet, not two. */
+  .pinwrap{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;
+    justify-content:center;background:rgba(31,36,48,.42);backdrop-filter:blur(3px);
+    animation:pinfade .18s ease}
+  @keyframes pinfade{from{opacity:0}to{opacity:1}}
+  .pinsheet{width:100%;max-width:420px;background:var(--panel);
+    border:1px solid var(--line);border-bottom:none;
+    border-radius:20px 20px 0 0;padding:18px 20px calc(22px + env(safe-area-inset-bottom));
+    box-shadow:0 -18px 50px rgba(31,36,48,.22);
+    animation:pinup .22s cubic-bezier(.2,.9,.3,1)}
+  @keyframes pinup{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+  .pingrip{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 14px}
+  .pinhead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .pinhead svg{width:17px;height:17px;stroke:var(--red);fill:none;stroke-width:1.8}
+  .pinhead b{font-size:15px;font-weight:650}
+  .pinsub{font-size:12px;color:var(--muted);margin:0 0 14px 27px}
+  .pindots{display:flex;gap:12px;justify-content:center;margin:4px 0 16px}
+  .pindot{width:13px;height:13px;border-radius:50%;border:1.6px solid #c6ccd6;
+    transition:all .14s}
+  .pindot.on{background:var(--red);border-color:var(--red);transform:scale(1.12)}
+  .pinsheet.bad .pindot{border-color:#e39a9a}
+  .pinsheet.bad{animation:pinshake .3s}
+  @keyframes pinshake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}
+    50%{transform:translateX(-4px)}}
+  .pinerr{font-size:12px;color:#b42318;text-align:center;margin:-6px 0 12px;min-height:15px}
+  .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .pinkey{padding:15px 0;border-radius:13px;border:1px solid var(--line);
+    background:#fafbfc;color:var(--ink);font-size:19px;font-weight:550;
+    cursor:pointer;transition:background .12s,transform .06s;
+    font-variant-numeric:tabular-nums;-webkit-tap-highlight-color:transparent}
+  .pinkey:active{background:#eef1f5;transform:scale(.96)}
+  .pinkey.muted{background:none;border-color:transparent;font-size:13px;color:var(--muted)}
+  .pinamt{text-align:center;font-size:13px;color:var(--muted);margin:0 0 12px}
+  .pinamt b{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
+
+  /* ── dark mode ────────────────────────────────────────────────────────────────────────
+     The page was light-only, so a phone set to dark showed a bright white panel at night.
+     Re-pointing the variables themes everything at once — header, thread, statement rows
+     and the PIN sheet — instead of each component carrying a second set of colours that
+     drift apart. The brand gradient is left alone: it is the brand. */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0e1116; --ink:#e8eaee; --muted:#9aa3af; --dim:#7a828d;
+      --line:#272c35; --panel:#161a21;
+    }
+    .phone{box-shadow:0 0 60px rgba(0,0,0,.6)}
+    .bot{background:#1d222b}
+    .bot.decline{background:#2a1d12;border-color:#5a3a1d;color:#f0b98a}
+    .bot.good{background:#132419;border-color:#24502f}
+    .bot.stop{background:#2a1618;border-color:#5a2a2d}
+    .stmt .row:hover{border-color:#39414e;box-shadow:none}
+    .stmt .st{background:#222832;color:var(--muted)}
+    .stmt .s-delivered,.stmt .s-paid,.stmt .s-owes-you{background:#14301f;color:#5fcf85}
+    .stmt .s-failed,.stmt .s-overdue,.stmt .s-you-owe{background:#331a1c;color:#ff8a8a}
+    .stmt .s-in-progress,.stmt .s-due,.stmt .s-being-reviewed{background:#33280f;color:#f0b84a}
+    .stmt .s-refunded{background:#1a2240;color:#8fb0ff}
+    .stmt .s-unknown,.stmt .s-settled{background:#222832;color:var(--muted)}
+    .pinwrap{background:rgba(0,0,0,.6)}
+    .pinsheet{box-shadow:0 -18px 50px rgba(0,0,0,.55)}
+    .pindot{border-color:#3c434f}
+    .pinsheet.bad .pindot{border-color:#8a4a4a}
+    .pinerr{color:#ff8a8a}
+    .pinkey{background:#1d222b;border-color:#2c323c}
+    .pinkey:active{background:#262d38}
+    /* Everything else that carries a hardcoded light colour. Listed rather than guessed at:
+       each of these is a literal #fff or near-white in the rules above, and a dark theme
+       that re-points the variables but leaves these alone produces white cards floating on
+       a dark page, which is worse than no dark theme at all. */
+    .thinking{background:#1d222b}
+    .why b{background:#1d222b;color:var(--muted)}
+    .why b.model,.why b.laya{background:#201a33;color:#b9a6ff;border-color:#3a2f5c}
+    .why b.out{background:#2a2211;color:#e0b773;border-color:#4d3d1b}
+    .opt{background:var(--panel)}
+    .opt:hover{background:#1f242e}
+    .mcard{background:var(--panel)}
+    .mcard .of{background:#14301f;color:#5fcf85}
+    .rcpt{background:var(--panel)}
+    .rcpt .rr.off,.rcpt .rr.off b{color:#5fcf85}
+    .result.ok{background:#132419;border-color:#24502f}
+    .result.bad{background:#2a1618;border-color:#5a2a2d}
+    footer{background:var(--panel)}
+    .quick button{background:var(--panel)}
+    .quick button:hover{background:#241c17}
+    .rnd.mic{background:#1d222b;color:var(--muted)}
+    .rnd.mic:hover{background:#262d38;color:var(--ink)}
+    #q{background:#1d222b;color:var(--ink);border-color:var(--line)}
+    #q::placeholder{color:var(--dim)}
+  }
+
+  .hint{text-align:center;font-size:11px;color:var(--dim);margin-top:8px}
+  .hint a{color:var(--red2);text-decoration:none;font-weight:600}
+  body.dropping::after{
+    content:'Drop the screenshot anywhere';
+    position:fixed; inset:12px; z-index:60; display:grid; place-items:center;
+    border:2px dashed var(--line, #8884); border-radius:16px;
+    background:rgba(10,10,14,.55); color:#fff; font-size:15px; letter-spacing:.02em;
+    pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div class="brand">Pay<span>10</span> Help</div>
+    <div class="sub" id="who">—</div>
+    <div class="bal"><b id="bal">—</b><i>AED available</i></div>
+  </header>
+
+  <div class="thread" id="thread"></div>
+
+  <footer>
+    <div class="quick" id="quick"></div>
+    <div class="bar">
+      <input id="q" placeholder="Ask about a payment, a refund, fees…" autocomplete="off">
+      <input type="file" id="pic" accept="image/*" hidden>
+      <button class="rnd" id="clip" title="Send a screenshot" aria-label="Send a screenshot">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5l-8.8 8.8a5 5 0 0 1-7.1-7.1l8.8-8.8a3.3
+          3.3 0 0 1 4.7 4.7l-8.8 8.8a1.7 1.7 0 0 1-2.4-2.4l8.1-8.1"/></svg></button>
+      <button class="rnd mic" id="mic" title="Speak" aria-label="Speak">
+        <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/>
+          <path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
+      <button class="rnd" id="go" title="Send" aria-label="Send">
+        <svg viewBox="0 0 24 24"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="hint">Watch every decision on the <a href="watch" target="_blank">flow screen</a></div>
+  </footer>
+</div>
+
+<script src="/faceid.js"></script>
+<script>
+const BASE = new URL('.', location.href).pathname;
+const $ = id => document.getElementById(id);
+const thread = $('thread');
+// One session per tab, so a follow-up like "100 dirhams" is understood as the answer to
+// the question this tab just asked.
+const SESSION = 'assist-' + Math.random().toString(36).slice(2, 10);
+
+function el(cls, html){
+  const d = document.createElement('div');
+  d.className = cls;
+  if (html !== undefined) d.innerHTML = html;
+  thread.appendChild(d);
+  thread.scrollTop = thread.scrollHeight;
+  return d;
+}
+function fmt(n){ return Number(n).toLocaleString(undefined,
+  {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function receipt(p){
+  // What the customer is actually paying, itemised. A sentence saying "15% off brings it to
+  // AED 85" makes them do the arithmetic to check we did it right.
+  const d = el('rcpt');
+  d.innerHTML = `
+    <div class="rh"></div>
+    <div class="rr"><span>Bill</span><b>AED ${fmt(p.amount)}</b></div>
+    <div class="rr off"><span></span><b>&minus; AED ${fmt(p.discount)}</b></div>
+    <div class="rr total"><span>You pay</span><b>AED ${fmt(p.payable)}</b></div>`;
+  d.querySelector('.rh').textContent = p.merchant;
+  d.querySelector('.rr.off span').textContent = p.campaign ? 'Offer applied' : 'Discount';
+  return d;
+}
+
+/* The engine marks the load-bearing part of an answer with **bold** — the status, the
+   amount, the word the customer is actually looking for. This rendered it as literal
+   asterisks on every reply, so the emphasis was not merely lost, it was visible noise in
+   the middle of the sentence.
+
+   Escaped FIRST and then marked up, so the only thing ever interpreted is our own
+   markers. A payee name is customer-controlled and must never reach innerHTML raw. */
+const esc = s => String(s == null ? '' : s)
+  .replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function say(text, kind){
+  const d = el('msg bot ' + (kind || ''));
+  d.innerHTML = esc(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  return d;
+}
+function mine(text){ const d = el('msg me'); d.textContent = text; return d; }
+
+const ICON = {raise_refund:'&#128176;', ask_refund:'&#128184;', pick_txn:'&#129534;',
+              send_to:'&#128228;', pay_merchant:'&#128179;', journey:'&#129517;',
+              escalate:'&#128172;', dismiss:'&#10005;'};
+
+let ctx = {};
+fetch(BASE + 'api/cx/context').then(r => r.json()).then(d => {
+  ctx = d;
+  $('who').textContent = d.customer.name + ' · wallet ' + d.customer.wallet;
+  $('bal').textContent = '—';
+  fetch(BASE + 'api/balance').then(r => r.json()).then(b => {
+    const v = (b.sagar ?? b.balance ?? null);
+    if (v != null) $('bal').textContent = Number(v).toLocaleString(undefined,{minimumFractionDigits:2});
+  }).catch(()=>{});
+  greet();
+}).catch(() => greet());
+
+// The prompts are built server-side from what has actually just happened, so they change as
+// the conversation does instead of being a fixed row that signals nothing is listening.
+function setChips(list){
+  const box = $('quick');
+  box.innerHTML = '';
+  (list && list.length ? list : [{label:'Where is my money?', text:'where is my money'},
+                                 {label:'Offers near me', text:'any offers near me'}])
+    .forEach(s => {
+      const b = document.createElement('button');
+      b.textContent = s.label;
+      b.onclick = () => ask(s.text || s.label);
+      box.appendChild(b);
+    });
+}
+
+function greet(){
+  idleClock();
+  liveUpdates();
+  say('Hello. I can help with your payments — where one has got to, refunds, fees and '
+      + 'timings, your limits, and offers near you. What do you need?');
+  setChips(ctx.suggestions);
+}
+
+// `pick` is our own option coming back (a roster payee, a nearby merchant, one of their own
+// payments). It is sent as structured data rather than re-typed English, so the classifier
+// never gets a second chance to misread a choice the customer already made.
+async function ask(text, pick){
+  if (!text) return;
+  $('q').value = '';
+  mine(text);
+  const dots = el('thinking', '<i></i><i></i><i></i>');
+  let d;
+  try{
+    d = await fetch(BASE + 'api/cx/ask', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({text, session: SESSION, pick})}).then(r=>r.json());
+  }catch(e){
+    dots.remove();
+    return say('I could not reach the service just now. Try again in a moment.', 'stop');
+  }
+  dots.remove();
+  render(d);
+}
+
+// ── going quiet ────────────────────────────────────────────────────────────────────────
+// The page owns the clock only. WHAT may be said, and how often, is decided server-side in
+// engine/nudge.py — so the rules about what this assistant says all live in one place, and a
+// nudge can never be something the browser invented.
+let lastSpoke = Date.now(), idleTimer = null;
+
+function idleClock(){
+  lastSpoke = Date.now();
+  if (idleTimer) clearInterval(idleTimer);
+  idleTimer = setInterval(async () => {
+    const idle = (Date.now() - lastSpoke) / 1000;
+    if (idle < 40) return;
+    // Don't talk to a screen nobody is looking at.
+    if (document.hidden) return;
+    try{
+      const d = await fetch(BASE + 'api/cx/nudge?session=' + encodeURIComponent(SESSION)
+                            + '&idle=' + Math.round(idle)).then(r => r.json());
+      if (!d || !d.say) return;
+      lastSpoke = Date.now();
+      say(d.say);
+      if ((d.options || []).length) renderOptions(d.options);
+      if (d.suggestions) setChips(d.suggestions);
+    }catch(e){}
+  }, 10000);
+}
+
+const GOOD = ['ALREADY_CREDITED','AUTO_REVERSE','ALREADY_REFUNDED','QUOTED','LISTED','EXPLAINED','INFORMED'];
+const STOP = ['HUMAN_REVIEW','NOTHING_TO_REFUND'];
+
+// Options are rendered the same way wherever they come from — an answer, or a nudge after
+// the customer has gone quiet. Shared because a nudge that offered differently-behaving
+// buttons would be a second, subtly divergent code path for the same thing.
+// Re-read everything the server derives from the ledger. Called after a payment, because a
+// balance from before the payment is worse than no balance: it is a number the customer will
+// believe.
+function refreshLive(delay){
+  setTimeout(async () => {
+    try{
+      const b = await fetch(BASE + 'api/balance').then(r => r.json());
+      const v = (b.sagar ?? b.balance ?? null);
+      if (v != null) $('bal').textContent =
+        Number(v).toLocaleString(undefined,{minimumFractionDigits:2});
+    }catch(e){}
+    try{
+      const d = await fetch(BASE + 'api/cx/context?session=' + encodeURIComponent(SESSION))
+        .then(r => r.json());
+      ctx = d; if (d.suggestions) setChips(d.suggestions);
+    }catch(e){}
+  }, delay || 0);
+}
+
+let lastSplitId = null;
+
+// The PIN never goes anywhere except /api/cx/act, which forwards it to the wallet's own
+// /pin-validate. It is not echoed into the thread, not kept in a variable after the call,
+// and the input is type=password with autocomplete off so the browser does not keep it
+// either.
+function askPin(message, isRetry, amountLabel){
+  // Rendered as a sheet over the page rather than a line in the thread. The PIN is held in
+  // one local variable, cleared the moment it is sent, and never written into the thread,
+  // the DOM, or anything that outlives this call.
+  document.querySelectorAll('.pinwrap').forEach(n => n.remove());
+  let entry = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pinwrap';
+  wrap.innerHTML = `
+    <div class="pinsheet">
+      <div class="pingrip"></div>
+      <div class="pinhead">
+        <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <b>Confirm with your PIN</b>
+      </div>
+      <div class="pinsub">Your 4-digit OpenWallet PIN</div>
+      <div class="pinamt"></div>
+      <div class="pindots">
+        <i class="pindot"></i><i class="pindot"></i><i class="pindot"></i><i class="pindot"></i>
+      </div>
+      <div class="pinerr"></div>
+      <button class="pinkey muted pinface" style="display:none;width:100%;
+        margin:-2px 0 10px;border:1px solid var(--line)">Use Face ID</button>
+      <div class="pinpad">
+        <button class="pinkey">1</button><button class="pinkey">2</button><button class="pinkey">3</button>
+        <button class="pinkey">4</button><button class="pinkey">5</button><button class="pinkey">6</button>
+        <button class="pinkey">7</button><button class="pinkey">8</button><button class="pinkey">9</button>
+        <button class="pinkey muted" data-act="cancel">Cancel</button>
+        <button class="pinkey">0</button>
+        <button class="pinkey muted" data-act="del">&#9003;</button>
+      </div>
+    </div>`;
+
+  const sheet = wrap.querySelector('.pinsheet');
+  const dots  = [...wrap.querySelectorAll('.pindot')];
+  const err   = wrap.querySelector('.pinerr');
+  if (amountLabel) wrap.querySelector('.pinamt').innerHTML = amountLabel;
+  if (isRetry){ err.textContent = message; sheet.classList.add('bad'); }
+
+  const paint = () => dots.forEach((d,i) => d.classList.toggle('on', i < entry.length));
+
+  const close = () => { entry = ''; wrap.remove(); };
+
+  // Face ID supplies the PIN; it never replaces the wallet's check of it. Every payment
+  // is still verified by the wallet, with the same attempt counting and lockout.
+  let fromFace = false;
+
+  const submit = async () => {
+    const pin = entry;
+    entry = ''; paint();                    // clear before the await, not after
+    wrap.remove();
+    const res = await act({kind:'pin', pin});
+    if (res && (res.retry || res.ok === false) && fromFace && window.faceIdForget){
+      // A remembered PIN the wallet rejected is a stale one — changed in the app. Keeping
+      // it would fail every payment and spend attempts towards the wallet's own lockout.
+      faceIdForget();
+      say("That saved PIN no longer works — type it once and I'll remember it again.");
+      return;
+    }
+    if (res && res.ok && !fromFace && window.faceIdAvailable && !faceIdEnrolled()){
+      if (await faceIdAvailable()
+          && confirm('Use Face ID instead of typing your PIN next time?')){
+        try{ await faceIdEnrol(pin, 'OpenWallet'); }
+        catch(e){ say(e.message || 'Could not set up Face ID.'); }
+      }
+    }
+  };
+
+  const faceBtn = wrap.querySelector('.pinface');
+  const faceTry = async () => {
+    try{
+      const pin = await faceIdUnlock();
+      fromFace = true; entry = pin; paint();
+      await submit();
+    }catch(e){ fromFace = false; }          // cancelled or no match: the keypad is there
+  };
+  if (window.faceIdEnrolled && faceIdEnrolled()){
+    faceIdAvailable().then(ok => {
+      if (ok && document.body.contains(wrap)){
+        faceBtn.style.display = 'block';
+        faceBtn.onclick = faceTry;
+        faceTry();                          // one touch, straight away
+      }
+    });
+  }
+
+  wrap.querySelectorAll('.pinkey').forEach(btn => {
+    btn.onclick = () => {
+      const act_ = btn.dataset.act;
+      if (act_ === 'cancel'){
+        close();
+        // Backing out is an answer: release the held payment rather than leaving it
+        // waiting for a PIN that is never coming.
+        act({kind:'pin_cancel'});
+        return;
+      }
+      if (act_ === 'del'){ entry = entry.slice(0,-1); paint(); err.textContent=''; return; }
+      if (entry.length >= 4) return;
+      entry += btn.textContent.trim();
+      sheet.classList.remove('bad');
+      err.textContent = '';
+      paint();
+      if (entry.length === 4) setTimeout(submit, 140);
+    };
+  });
+
+  // A physical keyboard works too — this is a phone surface but it is used on laptops.
+  const onKey = e => {
+    if (!document.body.contains(wrap)) { document.removeEventListener('keydown', onKey); return; }
+    if (/^[0-9]$/.test(e.key) && entry.length < 4){
+      entry += e.key; paint(); sheet.classList.remove('bad'); err.textContent='';
+      if (entry.length === 4) setTimeout(submit, 140);
+    } else if (e.key === 'Backspace'){ entry = entry.slice(0,-1); paint(); }
+    else if (e.key === 'Escape'){ close(); act({kind:'pin_cancel'}); }
+  };
+  document.addEventListener('keydown', onKey);
+
+  wrap.onclick = e => { if (e.target === wrap){ close(); act({kind:'pin_cancel'}); } };
+  document.body.appendChild(wrap);
+}
+
+// What the confirm button says, per proposal kind. null means "I do not know how to show
+// this", which the caller turns into an honest message rather than a payment it invented.
+// ── live updates that arrive without being asked for ──────────────────────────────────
+// A split is only half the story until somebody pays. The other half arrives minutes later
+// and from somebody else's phone, so the chat subscribes for the whole time it is open
+// rather than only while a payment of our own is in flight.
+//
+// Deliberately narrow: this listener acts on split settlement events ONLY. The same stream
+// carries the full decision trace, and piping that into a customer's chat would turn it into
+// an operator console. Everything else stays on /watch.
+let liveES = null;
+const seenLive = new Set();
+
+function liveUpdates(){
+  if (liveES) return;
+  const since = Date.now() / 1000 - 1;
+  try { liveES = new EventSource(BASE + 'events'); }
+  catch(e){ return; }
+  liveES.onmessage = e => {
+    let ev = {}; try { ev = JSON.parse(e.data); } catch(_){ return; }
+    if (ev.t && ev.t < since) return;                  // from before this page opened
+    if (ev.kind !== 'split.paid' && ev.kind !== 'split.settled') return;
+    const id = ev.kind + '|' + ev.detail;
+    if (seenLive.has(id)) return;                      // the stream replays; say it once
+    seenLive.add(id);
+
+    if (ev.kind === 'split.paid'){
+      const m = /^(\S+) paid their ([\d.]+) share/.exec(ev.detail || '');
+      say(m ? `${m[1]} just paid their ${Number(m[2]).toFixed(2)} AED share.`
+            : ev.detail, 'good');
+    } else {
+      say('That split is fully settled now.', 'good');
+    }
+    refreshLive(0);
+    thread.scrollTop = thread.scrollHeight;
+  };
+  liveES.onerror = () => {};
+}
+
+function proposalLabel(p){
+  const money = v => 'AED ' + fmt(v);
+  switch (p.kind){
+    case 'pay_merchant':
+      return 'Pay ' + money(p.payable)
+             + (p.discount > 0 ? ` (saving ${money(p.discount)})` : '');
+    case 'send':
+      return `Send ${money(p.amount)} to ${p.payee}`;
+    case 'bill_pay':
+      return 'Pay ' + money(p.grandTotal != null ? p.grandTotal : p.total);
+    case 'bill_split':
+      // Says what will HAPPEN, not just a figure. The customer is agreeing to a sequence —
+      // ask them, wait, then pay the biller — and the button should name it.
+      return 'Ask ' + (p.participants||[]).map(x=>x.name.split(' ')[0]).join(', ')
+             + ' for ' + money((p.participants||[{}])[0].displayValue);
+    case 'bill_schedule':
+      return 'Schedule ' + money(p.grandTotal != null ? p.grandTotal : p.total)
+             + (p.when ? ' for ' + p.when : '');
+    default:
+      return null;
+  }
+}
+
+// A bill is a bill plus charges, and the charges are shown rather than folded into one
+// figure — "why is it more than my bill?" should be answered before it is asked.
+// A bill split is a plan, so the card shows the plan: the bill, each share, what the
+// customer covers, and that the biller is paid only once the money is in.
+function billSplitReceipt(p){
+  const rows = (p.participants||[]).map(x =>
+    `<div class="rr"><span>${x.name.split(' ')[0]} pays</span><b>AED ${fmt(x.displayValue)}</b></div>`).join('');
+  const c = el('receipt');
+  c.innerHTML = `<div class="rh">Split &middot; ${p.bill}</div>
+    <div class="rr"><span>Bill</span><b>AED ${fmt(p.total)}</b></div>
+    ${rows}
+    <div class="rr total"><span>You cover</span><b>AED ${fmt(p.initiatorDisplayValue)}</b></div>
+    <div class="rr off" style="border-top:1px solid var(--line);padding-top:6px">
+      <span>${p.biller} is paid once their share arrives</span><b></b></div>`;
+}
+
+function billReceipt(p){
+  const rows = (p.bills || []).map(b =>
+    `<div class="rr"><span>${b.nickname || b.biller || 'Bill'}</span>` +
+    `<b>AED ${fmt(b.amount)}</b></div>`).join('');
+  const c = el('receipt');
+  c.innerHTML = `<div class="rh">${p.kind === 'bill_schedule'
+        ? 'Scheduled' + (p.when ? ' &middot; ' + p.when : '') : 'Bill payment'}</div>
+    ${rows}
+    ${p.charges ? `<div class="rr off"><span>Fees &amp; VAT</span><b>+ AED ${fmt(p.charges)}</b></div>` : ''}
+    <div class="rr total"><span>${p.payMode === 'OPEN_BANKING' ? 'From your bank' : 'From your wallet'}</span>
+      <b>AED ${fmt(p.grandTotal != null ? p.grandTotal : p.total)}</b></div>`;
+}
+
+function renderOptions(options, d){
+  const box = el('opts');
+  options.forEach((o, i) => {
+    if (o.kind === 'label'){              // a heading inside the option list, not a choice
+      const h = document.createElement('div');
+      h.style.cssText = 'font-size:11.5px;color:var(--dim);margin:3px 0 1px 3px';
+      h.textContent = o.label; box.appendChild(h); return;
+    }
+    const b = document.createElement('button');
+    b.className = 'opt' + (i === 0 && o.kind !== 'dismiss' ? ' primary' : '');
+    b.innerHTML = `<span class="ic">${ICON[o.kind] || '&#8250;'}</span><span></span>`;
+    b.querySelector('span:last-child').textContent = o.label;
+    b.onclick = () => { box.remove(); choose(o, d || {}); };
+    box.appendChild(b);
+  });
+  return box;
+}
+
+function render(d){
+  // "yes" to a standing offer. The engine never executes — it hands back the same proposal
+  // marked confirmed, and we do exactly what pressing the button would have done. One
+  // execution path, so a typed yes and a tapped button cannot diverge.
+  if (d.confirmed && d.proposal){
+    const p = d.proposal;
+    act(Object.assign({kind: p.kind === 'split' ? 'split' : p.kind}, p));
+    return;
+  }
+  if (d.outcome === 'CANCELLED'){
+    say(d.say);
+    return;
+  }
+
+  const kind = d.intent === 'out_of_scope' ? 'decline'
+             : GOOD.includes(d.outcome) ? 'good'
+             : STOP.includes(d.outcome) ? 'stop' : '';
+  say(d.say, kind);
+
+  // A list answer is rendered as a statement, not read out as a paragraph. Five amounts,
+  // five payees and five dates in one sentence is unreadable on a phone.
+  if ((d.rows || []).length){
+    const t = el('stmt');
+    // Rows are not all payments. A spend breakdown sends CATEGORY rows, which have a label
+    // and a total rather than a payee and a status — rendering those through the payment
+    // template is what put "undefined · undefined" on the screen.
+    const isCat = r => r && r.kind === 'category';
+    t.innerHTML = d.rows.map(r => `
+      <div class="row" data-ref="${r.ref || ''}">
+        <div class="l"><b></b><i></i></div>
+        <div class="r"><b></b><span class="st ${isCat(r) ? '' : 's-'+(r.status||'').toLowerCase().replace(/\s+/g,'-')}"></span></div>
+      </div>`).join('');
+    [...t.querySelectorAll('.row')].forEach((el2, i) => {
+      const r = d.rows[i];
+      if (isCat(r)){
+        const cur = d.spend && d.spend.currency || 'AED';
+        const n = r.count === 1 ? '1 payment' : (r.count||0) + ' payments';
+        el2.querySelector('.l b').textContent = r.label;
+        el2.querySelector('.l i').textContent = r.top_merchant ? n + ' · ' + r.top_merchant : n;
+        el2.querySelector('.r b').textContent = cur + ' ' + Number(r.total||0).toFixed(2);
+        // The movement against the period before is the part worth acting on, so it is the
+        // thing shown next to the amount.
+        const d0 = Number(r.delta||0);
+        const st = el2.querySelector('.r .st');
+        st.textContent = d0 ? (d0 > 0 ? '▲ ' : '▼ ') + Math.abs(d0).toFixed(0) : 'no change';
+        st.style.color = d0 > 0 ? 'var(--warn,#e0a23a)' : d0 < 0 ? 'var(--good,#3aa76d)' : '';
+        el2.onclick = () => ask('how much did I spend on ' + r.category);
+        return;
+      }
+      el2.querySelector('.l b').textContent = r.payee;
+      el2.querySelector('.l i').textContent = r.when + ' · ' + r.corridor;
+      el2.querySelector('.r b').textContent = r.currency + ' ' + Number(r.amount).toFixed(2);
+      el2.querySelector('.r .st').textContent = r.status;
+      el2.onclick = () => ask('About ' + r.payee, {intent:'txn_status', slots:{txn_ref:r.ref}});
+    });
+  }
+
+  // The prompt strip belongs to the TURN, not to the page load. It arrives with every
+  // answer, so it moves as the conversation does.
+  if (d.suggestions) setChips(d.suggestions);
+  idleClock();
+
+  // No model names, confidences, intents, timings or second opinions here. That is operator
+  // detail and it belongs on the flow screen — a customer asking where their money went does
+  // not need to be told "pay merchant · 54%, second opinion disagrees". All of it is still
+  // emitted and still visible at /watch.
+
+  if (d.intent === 'offers_nearby' && ctx.merchants){
+    ctx.merchants.slice(0,4).forEach(m => {
+      const c = el('mcard');
+      c.innerHTML = `<div class="pin">&#128205;</div>
+        <div><div class="nm"></div><div class="dt"></div></div>
+        <div class="of"></div>`;
+      c.querySelector('.nm').textContent = m.name;
+      c.querySelector('.dt').textContent = m.category + ' · ' + m.metres + 'm away';
+      c.querySelector('.of').textContent = m.offer ? m.offer.label : 'no offer';
+      c.style.cursor = 'pointer';
+      c.onclick = () => ask('Pay ' + m.name, {intent:'pay_merchant', slots:{merchant:m.name}});
+    });
+  }
+
+  if ((d.options || []).length) renderOptions(d.options, d);
+
+  if (d.proposal && d.proposal.kind === 'split'){
+    const p = d.proposal;
+    const rows = p.participants.map(x =>
+      `<div class="rr"><span>${x.name.split(' ')[0]}</span><b>AED ${fmt(x.displayValue)}</b></div>`).join('');
+    const c = el('receipt');
+    c.innerHTML = `<div class="rh">Split &middot; ${p.merchant}</div>
+      <div class="rr"><span>Bill</span><b>AED ${fmt(p.total)}</b></div>
+      ${rows}
+      <div class="rr total"><span>You keep</span><b>AED ${fmt(p.initiatorDisplayValue)}</b></div>`;
+    const box = el('opts');
+    const b = document.createElement('button');
+    b.className = 'opt primary';
+    b.innerHTML = `<span class="ic">&#128101;</span><span></span>`;
+    b.querySelector('span:last-child').textContent =
+      'Ask ' + p.participants.map(x => x.name.split(' ')[0]).join(', ') + ' for their share';
+    b.onclick = () => { box.remove(); act(Object.assign({kind:'split'}, p)); };
+    box.appendChild(b);
+    const n = document.createElement('button');
+    n.className = 'opt';
+    n.innerHTML = `<span class="ic">&#10005;</span><span>Not now</span>`;
+    n.onclick = () => box.remove();
+    box.appendChild(n);
+  }
+
+  // Dispatch on the proposal KIND explicitly.
+  //
+  // This used to be a chain of exclusions ("not refund, not split") ending in a send-shaped
+  // fallback, so every proposal kind added afterwards silently rendered as a transfer. A
+  // bill, which has `total` and `bills` but no `amount` and no `payee`, came out as
+  // "Send AED NaN to undefined" — and the button under it would have fired a transfer.
+  // A fallback that invents a payment is worse than one that admits it does not know.
+  if (d.proposal && d.proposal.kind !== 'refund' && d.proposal.kind !== 'split'){
+    const p = d.proposal;
+    const label = proposalLabel(p);
+    if (label === null){
+      say("I've prepared that, but I can't show it properly — have a look at the flow "
+          + "screen before confirming.", 'stop');
+    } else {
+      if (p.kind === 'pay_merchant' && p.discount > 0) receipt(p);
+      if (p.kind === 'bill_pay' || p.kind === 'bill_schedule') billReceipt(p);
+      if (p.kind === 'bill_split') billSplitReceipt(p);
+      const box = el('opts');
+      const b = document.createElement('button');
+      b.className = 'opt primary';
+      b.innerHTML = `<span class="ic">&#9889;</span><span></span>`;
+      b.querySelector('span:last-child').textContent = label;
+      b.onclick = () => { box.remove(); act(Object.assign({kind: p.kind}, p)); };
+      box.appendChild(b);
+    }
+  }
+}
+
+function choose(o, d){
+  if (o.kind === 'pick_txn')
+    return ask(o.label, {intent:'txn_status', slots:{txn_ref:o.ref}});
+  if (o.kind === 'ask_refund')
+    return ask('Refund ' + o.label, {intent:'refund_request', slots:{txn_ref:o.ref}});
+  if (o.kind === 'send_to')
+    return ask('Send to ' + o.payee, {intent:'send_money', slots:{payee:o.payee}});
+  if (o.kind === 'pay_merchant')
+    return ask('Pay ' + o.merchant, {intent:'pay_merchant', slots:{merchant:o.merchant}});
+  if (o.kind === 'journey')
+    return ask(o.label, {intent:'journey_help', slots:{}});
+  if (o.kind === 'split_with')
+    // Named participants are sent as STRUCTURED data, never re-typed as English. The
+    // classifier must not get a second chance to misread a person the customer has
+    // already pointed at.
+    return ask('Split with ' + o.label.split(' ·')[0],
+               {intent:'split_payment', slots:{participants:[{name:o.name, userId:o.userId}]}});
+  if (o.kind === 'split_nudge')
+    return act({kind:'split_nudge', splitId:(d && d.proposal && d.proposal.splitId) || lastSplitId, userId:o.userId});
+  if (o.kind === 'ask_text')    return ask(o.text || o.label);
+  if (o.kind === 'dismiss')      return;
+  return act({kind: o.kind === 'escalate' ? 'raise_refund' : o.kind, ref: o.ref});
+}
+
+async function act(payload){
+  const dots = el('thinking', '<i></i><i></i><i></i>');
+  let r;
+  try{
+    const resp = await fetch(BASE + 'api/cx/act', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(Object.assign({session: SESSION}, payload))});
+    r = await resp.json();
+  }catch(e){
+    // "Nothing happens" must be impossible. An unreachable server or a non-JSON response
+    // (a 500 with a stack trace) used to reject this promise with nobody listening, so the
+    // thinking dots sat there for ever and the customer had no idea whether their money had
+    // moved. Reported after entering a PIN, which is the worst possible moment for silence.
+    dots.remove();
+    say("I couldn't tell whether that went through — the service didn't answer. "
+        + "Check your balance before trying again.", 'stop');
+    return;
+  }
+  dots.remove();
+  if (r.started){
+    // Watch for the outcome. Previously the chat said "sending it now" and then went silent
+    // forever — from the customer's side that is indistinguishable from it being stuck,
+    // which is exactly how it was reported.
+    const pending = el('thinking', '<i></i><i></i><i></i>');
+    awaitResult(pending, payload);
+    return;
+  }
+  if (r.splitId) lastSplitId = r.splitId;
+  // Each branch hands the response BACK as well as rendering it. Nothing used the return
+  // value before, so this changes no behaviour — but the PIN sheet now needs to know
+  // whether the wallet accepted, to decide whether a PIN is worth remembering behind
+  // Face ID and whether a remembered one has gone stale.
+  if (r.needPin){ askPin(r.say || 'Enter your PIN to confirm.', false, r.confirming); return r; }
+  if (r.retry)  { askPin(r.error, true, r.confirming); return r; }
+  if (r.say) say(r.say, r.ok ? 'good' : 'stop');
+  else if (r.error) say(r.error, 'stop');
+  else say(r.ok ? 'Done.' : "That didn't complete. Nothing has moved.",
+           r.ok ? 'good' : 'stop');       // never return silently
+  return r;
+}
+
+// ---- the outcome of a payment, reported back into the chat ----
+// One EventSource, opened only while a payment is in flight. The server already streams
+// every stage to /events for the flow screen; the customer needs exactly one line of it.
+function awaitResult(pendingEl, payload){
+  // Everything before the network call — the roster match, the mandate check — happens in
+  // MILLISECONDS. A mandate refusal therefore lands before this EventSource has even
+  // connected, arrives in the replay, is skipped as "old", and the customer stares at
+  // nothing until the 60s backstop says "still waiting". Which is what was reported.
+  //
+  // So: remember when this payment started and accept any event at or after it, replayed or
+  // not. Events from BEFORE it are still ignored, which is what the replay guard was for.
+  const since = Date.now() / 1000 - 1;      // 1s of slack for clock jitter
+  let es, done = false;
+  const finish = (ok, title, detail, ref) => {
+    if (done) return; done = true;
+    try { es && es.close(); } catch(_){}
+    pendingEl.remove();
+    const d = el('result ' + (ok ? 'ok' : 'bad'));
+    d.innerHTML = `<div class="t"><span>${ok ? '&#9989;' : '&#9888;&#65039;'}</span>
+                   <span class="tt"></span></div><div class="s"></div>
+                   ${ref ? '<div class="ref"></div>' : ''}`;
+    d.querySelector('.tt').textContent = title;
+    d.querySelector('.s').textContent = detail;
+    if (ref) d.querySelector('.ref').textContent = 'Reference ' + ref;
+    thread.scrollTop = thread.scrollHeight;
+    // Money just moved, so everything derived from it is now stale: the balance in the
+    // header, and the prompts — which should now be about THIS payment, not the last one.
+    // The ledger read is cached for 20s server-side, so the refresh is deliberately delayed
+    // past that; refreshing immediately showed the pre-payment figures and looked broken.
+    refreshLive(0); refreshLive(2500); refreshLive(22000);
+    idleClock();
+  };
+
+  try { es = new EventSource(BASE + 'events'); }
+  catch(e){ return finish(false, 'Could not confirm', 'Check the flow screen for the result.'); }
+
+  es.onmessage = e => {
+    let ev = {}; try { ev = JSON.parse(e.data); } catch(_){ return; }
+    if (ev.t && ev.t < since) return;             // genuinely from before this payment
+    if (ev.kind === 'refused'){
+      finish(false, 'That could not go through', ev.detail || 'It was declined.');
+      return;
+    }
+    if (ev.kind === 'done'){
+      let r = {}; try { r = JSON.parse(ev.detail); } catch(_){}
+      const data = r.data || {};
+      if (r.ok){
+        const paid = data.amount != null ? fmt(data.amount) : fmt(payload.payable ?? payload.amount);
+        const who = payload.merchant || payload.payee || 'them';
+        const saved = payload.discount > 0 ? ` You saved AED ${fmt(payload.discount)}.` : '';
+        const fee = data.serviceCharges != null ? ` Fee AED ${fmt(data.serviceCharges)}.` : '';
+        finish(true, `Paid AED ${paid} to ${who}`,
+               `It has gone through.${saved}${fee}`, data.txnId);
+      } else {
+        finish(false, 'That did not go through',
+               r.message || 'Nothing was taken from your wallet.');
+      }
+    }
+  };
+  es.onerror = () => {};
+  // A payment that never reports back is still an answer we owe the customer.
+  setTimeout(() => finish(false, 'No confirmation came back',
+    'I did not hear whether that went through. Check your balance, or the flow screen for '
+    + 'the full trace.'), 60000);
+}
+
+$('go').onclick = () => ask($('q').value.trim());
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') ask($('q').value.trim()); });
+
+// ---- voice: raw PCM -> 16 kHz WAV, same approach as the send screen ----
+// MediaRecorder is not used on purpose: whisper-cli cannot read the webm Chrome produces,
+// so every Chrome utterance came back empty. Capturing PCM and building the WAV here
+// removes the codec from the problem.
+let rec = null;
+
+// getUserMedia only exists in a SECURE context: https, or localhost. Opened over the LAN
+// (http://192.168.x.x) the browser removes the API entirely, which is why the mic "could not
+// be used" with no further explanation. Say which it is and what to do about it, rather than
+// letting the customer think their microphone is broken.
+const MIC_OK = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+if (!MIC_OK){
+  $('mic').classList.add('off');
+  $('mic').title = window.isSecureContext
+    ? 'This browser will not give access to the microphone'
+    : 'Voice needs a secure connection — open this page over https, or on localhost';
+}
+
+$('mic').onclick = async () => {
+  if (!MIC_OK){
+    say(window.isSecureContext
+        ? 'This browser will not let me use the microphone here. You can type instead.'
+        : 'Voice input needs a secure connection (https) or localhost — this page is served '
+          + 'over plain http, so the browser blocks the microphone. You can type instead.',
+        'decline');
+    return;
+  }
+  if (rec){ rec.stop(); return; }
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,
+      echoCancellation:true, noiseSuppression:true}});
+    const actx = new AudioContext({sampleRate:16000});
+    const src = actx.createMediaStreamSource(stream);
+    const node = actx.createScriptProcessor(4096, 1, 1);
+    const buf = []; let frames = 0, quiet = 0, started = false;
+    node.onaudioprocess = e => {
+      const d = e.inputBuffer.getChannelData(0);
+      buf.push(new Float32Array(d)); frames += d.length;
+      let peak = 0; for (let i=0;i<d.length;i++) peak = Math.max(peak, Math.abs(d[i]));
+      if (peak > 0.035){ started = true; quiet = 0; } else if (started) quiet += d.length;
+      if (started && quiet > 16000 * 0.9) rec.stop();      // ~0.9s of silence ends it
+      if (frames > 16000 * 12) rec.stop();                  // hard stop at 12s
+    };
+    src.connect(node); node.connect(actx.destination);
+    $('mic').classList.add('rec');
+    rec = { stop(){
+      rec = null; $('mic').classList.remove('rec');
+      node.disconnect(); src.disconnect();
+      stream.getTracks().forEach(t => t.stop()); actx.close();
+      send(buf, frames);
+    }};
+  }catch(e){
+    const why = (e && e.name === 'NotAllowedError')
+      ? 'Microphone permission was declined. You can allow it in the address bar, or type instead.'
+      : (e && e.name === 'NotFoundError')
+      ? 'I could not find a microphone on this device. You can type instead.'
+      : 'I could not start the microphone. You can type instead.';
+    say(why, 'stop');
+  }
+};
+
+/* ── sending a screenshot ──────────────────────────────────────────────────────
+   Customers do not type sixteen-digit references. They screenshot the payment and send
+   the picture, so there are three ways in and all of them matter: the button, a PASTE
+   (how anyone on a desktop sends a screenshot), and a DROP. On a phone the same file
+   input opens the camera roll.
+
+   The image is shown in the thread as their own turn before the answer arrives, because
+   a message you sent that leaves no trace reads as a message that did not send. */
+function imageBubble(file){
+  const d = el('msg me');
+  const img = document.createElement('img');
+  img.alt = 'screenshot';
+  img.style.cssText = 'max-width:220px;max-height:280px;border-radius:10px;display:block';
+  img.src = URL.createObjectURL(file);
+  img.onload = () => URL.revokeObjectURL(img.src);
+  d.appendChild(img);
+  return d;
+}
+
+const MAX_PIC = 12 * 1024 * 1024;
+
+async function sendImage(file){
+  if (!file || !/^image\//.test(file.type)) return;
+  if (file.size > MAX_PIC)
+    return say('That image is a bit big for me — anything up to about 12MB is fine.', 'stop');
+  imageBubble(file);
+  const dots = el('thinking', '<i></i><i></i><i></i>');
+  let d;
+  try{
+    const buf = await file.arrayBuffer();
+    d = await fetch(BASE + 'api/cx/image?session=' + encodeURIComponent(SESSION), {
+      method:'POST', headers:{'Content-Type': file.type || 'image/png'}, body: buf
+    }).then(r => r.json());
+  }catch(e){
+    dots.remove();
+    return say('I could not send that image just now. Try again in a moment.', 'stop');
+  }
+  dots.remove();
+  render(d);
+}
+
+$('clip').onclick = () => $('pic').click();
+$('pic').onchange = e => { const f = e.target.files[0]; e.target.value = ''; sendImage(f); };
+
+// Paste — the usual way a screenshot arrives on a desktop.
+addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (item){ e.preventDefault(); sendImage(item.getAsFile()); }
+});
+
+// Drag and drop, with something visible to drop onto.
+['dragover','dragenter'].forEach(ev => addEventListener(ev, e => {
+  if ([...(e.dataTransfer?.types || [])].includes('Files')){
+    e.preventDefault(); document.body.classList.add('dropping');
+  }
+}));
+['dragleave','drop'].forEach(ev => addEventListener(ev, e => {
+  if (ev === 'drop' && e.dataTransfer?.files?.length){
+    e.preventDefault(); sendImage(e.dataTransfer.files[0]);
+  }
+  if (ev === 'dragleave' && e.relatedTarget) return;
+  document.body.classList.remove('dropping');
+}));
+
+async function send(chunks, frames){
+  const pcm = new Float32Array(frames); let o = 0;
+  chunks.forEach(c => { pcm.set(c, o); o += c.length; });
+  const wav = new DataView(new ArrayBuffer(44 + pcm.length*2));
+  const put = (off, s) => { for (let i=0;i<s.length;i++) wav.setUint8(off+i, s.charCodeAt(i)); };
+  put(0,'RIFF'); wav.setUint32(4, 36+pcm.length*2, true); put(8,'WAVEfmt ');
+  wav.setUint32(16,16,true); wav.setUint16(20,1,true); wav.setUint16(22,1,true);
+  wav.setUint32(24,16000,true); wav.setUint32(28,32000,true); wav.setUint16(32,2,true);
+  wav.setUint16(34,16,true); put(36,'data'); wav.setUint32(40, pcm.length*2, true);
+  for (let i=0;i<pcm.length;i++){
+    const v = Math.max(-1, Math.min(1, pcm[i]));
+    wav.setInt16(44+i*2, v<0 ? v*0x8000 : v*0x7fff, true);
+  }
+  const dots = el('thinking', '<i></i><i></i><i></i>');
+  try{
+    const r = await fetch(BASE + 'api/stt', {method:'POST',
+      headers:{'Content-Type':'audio/wav'}, body: wav.buffer}).then(r=>r.json());
+    dots.remove();
+    if (r.ok && r.text && r.text.trim()) ask(r.text.trim());
+    else say('I did not catch that. Try again, or type it.', 'stop');
+  }catch(e){ dots.remove(); say('Speech is not available right now.', 'stop'); }
+}
+</script>
+</body>
+</html>
